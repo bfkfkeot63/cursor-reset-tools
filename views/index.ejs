@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sazumi Cloud - Cursor Reset Tool</title>
+  <meta name="description" content="Sazumi Cloud is a powerful tool designed to reset the Machine ID of Cursor IDE. This helps to bypass trial limits and unleash the full potential of Cursor AI capabilities.">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+</head>
+<body>
+  <div id="disclaimer-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><i class="ri-alert-line"></i> Important Disclaimer</h2>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          <i class="ri-error-warning-line"></i>
+          <strong>Warning:</strong> Excessive use of this tool may violate Cursor's terms of service.
+        </div>
+        <p>By using this tool, you acknowledge that:</p>
+        <ul>
+          <li>All actions performed are at your own risk</li>
+          <li>Sazumi Cloud developers are not responsible for any consequences</li>
+          <li>This tool should not be abused frequently</li>
+          <li>This is provided for educational and research purposes only</li>
+        </ul>
+        <p>Please use responsibly and consider supporting Cursor by purchasing a legitimate license if you find their product valuable.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="accept-disclaimer" class="btn">I Understand and Accept</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>Sazumi Cloud</h1>
+      <p>Cursor Machine ID Reset Tool</p>
+    </header>
+    
+    <section id="intro">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-file-info-line"></i>About This Tool</h2>
+        </div>
+        <div class="card-body">
+          <p>Sazumi Cloud is a powerful tool designed to reset the Machine ID of Cursor IDE. This helps to bypass trial limits and unleash the full potential of Cursor AI capabilities.</p>
+          <div class="features">
+            <div class="feature">
+              <i class="ri-shield-check-line"></i>
+              <div>
+                <h3>Reset Machine ID</h3>
+                <p>Generates a new unique identifier for your machine</p>
+              </div>
+            </div>
+            <div class="feature">
+              <i class="ri-delete-bin-line"></i>
+              <div>
+                <h3>Clear Storage Files</h3>
+                <p>Removes stored data that tracks your usage</p>
+              </div>
+            </div>
+            <div class="feature">
+              <i class="ri-restart-line"></i>
+              <div>
+                <h3>Fresh Start</h3>
+                <p>Begins a new trial period for extended use</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <main>
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-computer-line"></i>System Information</h2>
+        </div>
+        <div class="card-body">
+          <div id="system-info">
+            <div class="loading">Loading system information</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-apps-line"></i>Cursor Status</h2>
+        </div>
+        <div class="card-body">
+          <div id="cursor-status">
+            <div class="loading">Loading cursor information</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-lock-unlock-line"></i>Reset Machine ID</h2>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <i class="ri-information-line"></i>
+            <strong>Important:</strong> Make sure Cursor is closed before resetting the machine ID.
+          </div>
+          <button id="reset-btn" class="btn"><i class="ri-refresh-line"></i>Reset Machine ID</button>
+          <div id="reset-result"></div>
+        </div>
+      </div>
+    </main>
+    
+    <section id="requirements">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-list-check"></i>Requirements</h2>
+        </div>
+        <div class="card-body">
+          <ul class="req-list">
+            <li><i class="ri-checkbox-circle-line"></i>Admin privileges are required for file operations</li>
+            <li><i class="ri-checkbox-circle-line"></i>Cursor must be completely closed when resetting</li>
+            <li><i class="ri-checkbox-circle-line"></i>Internet connection for API calls</li>
+            <li><i class="ri-checkbox-circle-line"></i>Compatible with Windows, macOS, and Linux</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+    
+    <section id="docs">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-question-line"></i>Documentation</h2>
+        </div>
+        <div class="card-body">
+          <div class="accordion">
+            <div class="accordion-item">
+              <div class="accordion-header">
+                <i class="ri-arrow-right-s-line"></i>
+                <h3>How It Works</h3>
+              </div>
+              <div class="accordion-content">
+                <p>Cursor identifies your machine using a unique ID stored in your system. By resetting this ID, Cursor treats your machine as a new one, effectively resetting any limitations tied to your current machine ID.</p>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <div class="accordion-header">
+                <i class="ri-arrow-right-s-line"></i>
+                <h3>Prerequisites</h3>
+              </div>
+              <div class="accordion-content">
+                <ul>
+                  <li>Close all instances of Cursor before resetting</li>
+                  <li>Administrator privileges may be required</li>
+                  <li>Restart Cursor after reset for changes to take effect</li>
+                </ul>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <div class="accordion-header">
+                <i class="ri-arrow-right-s-line"></i>
+                <h3>Troubleshooting</h3>
+              </div>
+              <div class="accordion-content">
+                <ul>
+                  <li>If reset fails, try running the application with administrator privileges</li>
+                  <li>Ensure Cursor is completely closed (check task manager)</li>
+                  <li>If problems persist, manual deletion of files may be required</li>
+                </ul>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <div class="accordion-header">
+                <i class="ri-arrow-right-s-line"></i>
+                <h3>Recommended Tips</h3>
+              </div>
+              <div class="accordion-content">
+                <p>For best results when creating new Cursor accounts:</p>
+                <ul>
+                  <li><strong>Use our Disposable Email:</strong> <a href="https://mail.sazumi.com" target="_blank">Sazumi Cloud - Email Disposable</a> works well with Cursor and doesn't get blocked</li>
+                  <li>Reset machine ID before each new registration</li>
+                  <li>Use private/incognito browser window for registration</li>
+                  <li>Clear browser cookies after registration</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="installation">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-install-line"></i>Installation Guide</h2>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <i class="ri-alert-line"></i>
+            <strong>Important:</strong> Do not run or edit this code using Cursor IDE. Use VS Code or another code editor instead.
+          </div>
+          
+          <div class="installation-steps">
+            <div class="step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <h3>Clone Repository</h3>
+                <div class="code-block">git clone https://github.com/sazumivicky/cursor-reset-tool.git
+cd cursor-reset-tool</div>
+              </div>
+            </div>
+            
+            <div class="step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <h3>Install Dependencies</h3>
+                <div class="code-block">npm install</div>
+              </div>
+            </div>
+            
+            <div class="step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <h3>Start the Application</h3>
+                <div class="code-block">npm start</div>
+                <p>The server will start on <span class="highlight">http://localhost:3000</span></p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="accordion">
+            <div class="accordion-item">
+              <div class="accordion-header">
+                <i class="ri-arrow-right-s-line"></i>
+                <h3>Running as Administrator</h3>
+              </div>
+              <div class="accordion-content">
+                <p>On Windows, use Command Prompt as Administrator:</p>
+                <div class="code-block">cd path\to\cursor-reset-tool
+npm start</div>
+                <p>On macOS/Linux, use sudo:</p>
+                <div class="code-block">cd path/to/cursor-reset-tool
+sudo npm start</div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <div class="accordion-header">
+                <i class="ri-arrow-right-s-line"></i>
+                <h3>Development Mode</h3>
+              </div>
+              <div class="accordion-content">
+                <p>To run in development mode with automatic restart:</p>
+                <div class="code-block">npm run dev</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="changelog">
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-history-line"></i>Changelog</h2>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="version-header">
+                  <span class="version-tag">v1.0.0</span>
+                  <span class="timeline-date">April 2025</span>
+                </div>
+                <div class="timeline-card">
+                  <ul class="version-changes">
+                    <li><span class="change-type new">New</span> Initial release of Sazumi Cloud</li>
+                    <li><span class="change-type new">New</span> Support for Windows, macOS and Linux</li>
+                    <li><span class="change-type new">New</span> Machine ID reset functionality</li>
+                    <li><span class="change-type new">New</span> System information display</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="version-header">
+                  <span class="version-tag">v1.1.0</span>
+                  <span class="timeline-date">April 2025</span>
+                </div>
+                <div class="timeline-card">
+                  <ul class="version-changes">
+                    <li><span class="change-type improved">Improved</span> Enhanced UI with modern design</li>
+                    <li><span class="change-type improved">Improved</span> Better cross-platform compatibility</li>
+                    <li><span class="change-type added">Added</span> Comprehensive documentation</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section id="actions">
+      <div class="action-buttons">
+        <a href="https://github.com/sazumivicky/cursor-reset-tool" target="_blank" class="action-btn github-btn">
+          <i class="ri-github-fill"></i>
+          <span>GitHub</span>
+        </a>
+        <a href="https://sociabuzz.com/sazumi/tribe" class="action-btn donate-btn">
+          <i class="ri-hand-heart-line"></i>
+          <span>Donate</span>
+        </a>
+      </div>
+    </section>
+    
+    <footer>
+      <p>hey, this is a tool to reset the machine id of cursor, powered by <a href="https://sociabuzz.com/sazumi/tribe" target="_blank">Sazumi Cloud</a></p>
+    </footer>
+  </div>
+  
+  <script src="/js/main.js"></script>
+</body>
+</html> 
