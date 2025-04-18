@@ -17,8 +17,8 @@ A modern web-based tool to reset Cursor IDE's Machine ID, helping users to bypas
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/sazumivicky/cursor-reset-tool.git
-cd cursor-reset-tool
+git clone https://github.com/sazumivicky/cursor-reset-tools.git
+cd cursor-reset-tools
 ```
 
 2. **Install dependencies**
@@ -42,13 +42,13 @@ This tool requires administrator privileges to modify system files.
 ### Windows
 ```bash
 # Start CMD as Administrator
-cd path\to\cursor-reset-tool
+cd path\to\cursor-reset-tools
 npm start
 ```
 
 ### macOS/Linux
 ```bash
-cd path/to/cursor-reset-tool
+cd path/to/cursor-reset-tools
 sudo npm start
 ```
 
@@ -104,8 +104,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 🔗 Links
 
-- [GitHub Repository](https://github.com/sazumivicky/cursor-reset-tool)
-- [Issue Tracker](https://github.com/sazumivicky/cursor-reset-tool/issues)
+- [GitHub Repository](https://github.com/sazumivicky/cursor-reset-tools)
+- [Issue Tracker](https://github.com/sazumivicky/cursor-reset-tools/issues)
 - [Donate to Sazumi Viki](https://sociabuzz.com/sazumi/tribe)
 
 ---
