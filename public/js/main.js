@@ -105,20 +105,29 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = await response.json();
       
       if (result.success) {
-        rr.innerHTML = `
-          <div class="success">
-            <p><i class="ri-check-line"></i><strong>Success!</strong> Machine ID has been reset.</p>
-            ${result.created ? '<p>Machine ID file was created since it did not exist.</p>' : ''}
-            <p>New Machine ID: <div class="code-block">${result.newMachineId || 'Generated'}</div></p>
-            <p>Storage file: ${result.storageRemoved ? 'Removed' : (result.storageNotFound ? 'Not found' : 'Failed to remove')}</p>
-            <p>SQLite file: ${result.sqliteRemoved ? 'Removed' : (result.sqliteNotFound ? 'Not found' : 'Failed to remove')}</p>
-          </div>
-        `;
+        if (result.formatted) {
+          rr.innerHTML = `
+            <div class="success">
+              <p><i class="ri-check-line"></i><strong>Success!</strong> Machine ID has been reset.</p>
+              <pre class="log-output">${result.formatted}</pre>
+            </div>
+          `;
+        } else {
+          rr.innerHTML = `
+            <div class="success">
+              <p><i class="ri-check-line"></i><strong>Success!</strong> Machine ID has been reset.</p>
+              ${result.created ? '<p>Machine ID file was created since it did not exist.</p>' : ''}
+              <p>New Machine ID: <div class="code-block">${result.newIds?.uuid || (result.newMachineId || 'Generated')}</div></p>
+              <p>Storage file: ${result.storageUpdated ? 'Updated' : (result.storageNotFound ? 'Not found' : 'Failed to update')}</p>
+              <p>SQLite file: ${result.sqliteUpdated ? 'Updated' : (result.sqliteNotFound ? 'Not found' : 'Failed to update')}</p>
+            </div>
+          `;
+        }
       } else {
         rr.innerHTML = `
           <div class="error">
             <p><i class="ri-error-warning-line"></i><strong>Failed to reset machine ID</strong></p>
-            ${result.errors.map(err => `<p>${err}</p>`).join('')}
+            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : result.errors?.map(err => `<p>${err}</p>`).join('')}
           </div>
         `;
       }
