@@ -245,6 +245,102 @@ const pm = async () => {
   return { success: false, message: 'Main JS file not found' };
 };
 
+const lp = async () => {
+  const pt = os.platform();
+  if (pt === 'darwin') {
+    try {
+      const hd = os.homedir();
+      const paths = [
+        path.join(hd, 'Library', 'Application Support', 'Cursor', '.uuid'),
+        path.join(hd, 'Library', 'Application Support', 'Cursor', '.device'),
+        path.join(hd, 'Library', 'Application Support', 'Cursor', '.machine'),
+        path.join(hd, 'Library', 'Application Support', 'Cursor', '.deviceId'),
+        path.join(hd, 'Library', 'Application Support', 'Cursor', '.machineId'),
+        path.join(hd, 'Library', 'Application Support', 'Cursor', 'machineid'),
+        path.join(hd, 'Library', 'Application Support', 'Cursor', 'User', 'workspaceStorage')
+      ];
+      
+      for (const p of paths) {
+        if (fs.existsSync(p)) {
+          if (p.includes('workspaceStorage')) {
+            await fs.emptyDir(p);
+            lo.info(`Cleared workspace storage: ${p}`);
+          } else {
+            fs.unlinkSync(p);
+            lo.info(`Removed additional ID file: ${p}`);
+          }
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      lo.error(`Failed to remove additional MacOS files: ${error.message}`);
+      return false;
+    }
+  }
+  return true;
+};
+
+const mp = async () => {
+  const pt = os.platform();
+  if (pt === 'darwin') {
+    try {
+      await ex('defaults write com.cursor.Cursor AiChatTokensConsumedInPeriod -integer 0');
+      await ex('defaults write com.cursor.Cursor SkippedProVersion -bool false');
+      await ex('defaults write com.cursor.Cursor UserAuthenticated -bool false');
+      await ex('defaults write com.cursor.Cursor LastMachineReset -date "$(date -u +%Y-%m-%dT%H:%M:%SZ)"');
+      await ex('defaults delete com.cursor.Cursor "ProTrialAccounts" 2>/dev/null || true');
+      lo.success('Reset MacOS app defaults');
+      return true;
+    } catch (error) {
+      lo.error(`Failed to reset MacOS defaults: ${error.message}`);
+      return false;
+    }
+  }
+  return true;
+};
+
+const vp = async () => {
+  const pt = os.platform();
+  if (pt === 'darwin') {
+    try {
+      const hd = os.homedir();
+      const configPaths = [
+        path.join(hd, 'Library', 'Application Support', 'Code', 'machineid'),
+        path.join(hd, 'Library', 'Application Support', 'VSCodium', 'machineid'),
+        path.join(hd, 'Library', 'Application Support', 'Code - Insiders', 'machineid')
+      ];
+      
+      for (const configPath of configPaths) {
+        if (fs.existsSync(configPath)) {
+          const newId = uuidv4();
+          fs.writeFileSync(configPath, newId);
+          lo.success(`Updated related VSCode ID: ${configPath}`);
+        }
+      }
+      
+      const keychainItems = [
+        'Cursor',
+        'cursor-app',
+        'cursor-oauth'
+      ];
+      
+      for (const item of keychainItems) {
+        try {
+          await ex(`security delete-generic-password -a ${item} -s ${item} 2>/dev/null || true`);
+          lo.success(`Removed keychain item: ${item}`);
+        } catch (e) {}
+      }
+      
+      return true;
+    } catch (error) {
+      lo.error(`Failed to update related VSCode IDs: ${error.message}`);
+      return false;
+    }
+  }
+  return true;
+};
+
 const rm = async () => {
   const paths = pa();
   const result = { success: true, errors: [], newIds: {}, logs: [] };
@@ -296,6 +392,10 @@ const rm = async () => {
       lo.success('Machine ID file created');
     }
     
+    await lp();
+    await mp();
+    await vp();
+    
     lo.info('Saving New Config to JSON...');
     
     if (fs.existsSync(paths.storage)) {
@@ -311,6 +411,18 @@ const rm = async () => {
           storage.telemetry.machineId = newIds.machineId;
           storage.telemetry.sqmId = newIds.sqmId;
           storage.storage.serviceMachineId = newIds.uuid;
+          
+          if (os.platform() === 'darwin') {
+            if (!storage.cursor) storage.cursor = {};
+            if (!storage.cursor.aiChat) storage.cursor.aiChat = {};
+            if (!storage.cursor.experimental) storage.cursor.experimental = {};
+            
+            storage.cursor.aiChat.lastTokenLimitResetDate = new Date().toISOString();
+            storage.cursor.aiChat.tokensConsumedInPeriod = 0;
+            storage.cursor.experimental.aiChatTokenLimits = {};
+            storage.cursor.experimental.aiChatLastLimitReset = new Date().toISOString();
+            storage.cursor.isAuthenticated = false;
+          }
           
           fs.writeJsonSync(paths.storage, storage, { spaces: 2 });
           result.storageUpdated = true;
@@ -344,6 +456,15 @@ const rm = async () => {
         
         await us(db, 'storage.serviceMachineId', newIds.uuid);
         lo.info('Updating Key-Value Pair: storage.serviceMachineId');
+        
+        if (os.platform() === 'darwin') {
+          await us(db, 'cursor.aiChat.lastTokenLimitResetDate', new Date().toISOString());
+          await us(db, 'cursor.aiChat.tokensConsumedInPeriod', 0);
+          await us(db, 'cursor.experimental.aiChatTokenLimits', {});
+          await us(db, 'cursor.experimental.aiChatLastLimitReset', new Date().toISOString());
+          await us(db, 'cursor.isAuthenticated', false);
+          lo.info('MacOS-specific SQLite entries updated');
+        }
         
         await db.close();
         lo.success('SQLite Database Updated Successfully');
@@ -433,6 +554,25 @@ const du = async () => {
     try {
       lo.info(`Disabling auto-update on macOS...`);
       await ex('defaults write com.cursor.Cursor SUEnableAutomaticChecks -bool false');
+      await ex('defaults write com.cursor.Cursor SUAutomaticallyUpdate -bool false');
+      await ex('defaults write com.cursor.Cursor SUSendProfileInfo -bool false');
+      await ex('defaults write com.cursor.Cursor SUSkippedVersion -string "999.999.999"');
+      
+      lo.info(`Removing AutoUpdate directories...`);
+      const hd = os.homedir();
+      const updateDirs = [
+        path.join(hd, 'Library', 'Caches', 'com.cursor.Cursor.ShipIt'),
+        path.join(hd, 'Library', 'Caches', 'com.cursor.Cursor'),
+        path.join(hd, 'Library', 'Caches', 'Cursor')
+      ];
+      
+      for (const dir of updateDirs) {
+        if (fs.existsSync(dir)) {
+          await fs.remove(dir);
+          lo.success(`Removed update cache: ${dir}`);
+        }
+      }
+      
       lo.success(`Auto-update disabled successfully`);
       return { success: true, logs: lo.get(), formatted: lo.format() };
     } catch (error) {
