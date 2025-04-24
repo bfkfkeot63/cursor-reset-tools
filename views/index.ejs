@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sazumi Cloud - Cursor Reset Tool</title>
-  <meta name="description" content="Sazumi Cloud is a powerful tool designed to reset the Machine ID of Cursor IDE. This helps to bypass trial limits and unleash the full potential of Cursor AI capabilities.">
+  <meta name="description" content="Sazumi Cloud is a powerful tool designed to bypass Cursor IDE limitations. Reset Machine ID, convert free trials to Pro, bypass token limits, and prevent auto updates.">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -50,27 +50,34 @@
           <h2><i class="ri-file-info-line"></i>About This Tool</h2>
         </div>
         <div class="card-body">
-          <p>Sazumi Cloud is a powerful tool designed to reset the Machine ID of Cursor IDE. This helps to bypass trial limits and unleash the full potential of Cursor AI capabilities.</p>
+          <p>Sazumi Cloud is a powerful tool designed to reset the Machine ID of Cursor IDE. This helps to bypass trial limits, convert free trials to Pro, bypass token limitations, and prevent automatic updates to unleash the full potential of Cursor AI capabilities.</p>
           <div class="features">
             <div class="feature">
               <i class="ri-shield-check-line"></i>
               <div>
-                <h3>Reset Machine ID</h3>
-                <p>Generates a new unique identifier for your machine</p>
+                <h3>Token Limit Bypass</h3>
+                <p>Remove restrictions on token usage for AI completions</p>
               </div>
             </div>
             <div class="feature">
-              <i class="ri-delete-bin-line"></i>
+              <i class="ri-vip-crown-line"></i>
               <div>
-                <h3>Clear Storage Files</h3>
-                <p>Removes stored data that tracks your usage</p>
+                <h3>Pro Trial Conversion</h3>
+                <p>Access Pro features without purchasing a subscription</p>
               </div>
             </div>
             <div class="feature">
               <i class="ri-restart-line"></i>
               <div>
-                <h3>Fresh Start</h3>
-                <p>Begins a new trial period for extended use</p>
+                <h3>Machine ID Reset</h3>
+                <p>Bypass the "Too many free trial accounts" limitation</p>
+              </div>
+            </div>
+            <div class="feature">
+              <i class="ri-shield-flash-line"></i>
+              <div>
+                <h3>Auto Update Prevention</h3>
+                <p>Stop Cursor from automatically updating to versions that could patch these bypasses</p>
               </div>
             </div>
           </div>
@@ -145,7 +152,15 @@
                 <h3>How It Works</h3>
               </div>
               <div class="accordion-content">
-                <p>Cursor identifies your machine using a unique ID stored in your system. By resetting this ID, Cursor treats your machine as a new one, effectively resetting any limitations tied to your current machine ID.</p>
+                <p>Cursor identifies your machine using a unique ID stored in specific locations of your system. This tool works by:</p>
+                <ul>
+                  <li><strong>Machine ID Reset:</strong> Generates a new unique identifier to bypass device restrictions</li>
+                  <li><strong>Token Limits:</strong> Modifies system files to remove AI completion token restrictions</li>
+                  <li><strong>Pro Features:</strong> Modifies authentication data to enable premium features without a paid subscription</li>
+                  <li><strong>Update Prevention:</strong> Blocks Cursor from automatically updating to versions that could patch these bypasses</li>
+                  <li><strong>Storage Clearance:</strong> Removes cached data that tracks your usage history and limits</li>
+                </ul>
+                <p>These modifications allow Cursor to treat your machine as a new device with full Pro capabilities.</p>
               </div>
             </div>
             <div class="accordion-item">
@@ -182,7 +197,7 @@
               <div class="accordion-content">
                 <p>For best results when creating new Cursor accounts:</p>
                 <ul>
-                  <li><strong>Use our Disposable Email:</strong> <a href="https://mail.sazumi.com" target="_blank">Sazumi Cloud - Email Disposable</a> works well with Cursor and doesn't get blocked</li>
+                  <li><strong>Use our Disposable Email:</strong> <a href="https://mail.sazumi.com" target="_blank" style="color: #0000FF;">Sazumi Cloud - Email Disposable</a> works well with Cursor and doesn't get blocked</li>
                   <li>Reset machine ID before each new registration</li>
                   <li>Use private/incognito browser window for registration</li>
                   <li>Clear browser cookies after registration</li>
@@ -361,10 +376,14 @@ sudo npm start</div>
     </section>
     
     <footer>
-      <p>hey, this is a tool to reset the machine id of cursor, powered by <a href="https://sociabuzz.com/sazumi/tribe" target="_blank">Sazumi Cloud</a></p>
+      <p>© <span id="current-year"></span> Cursor Reset Tool by <b>Sazumi Cloud</b>. All rights reserved.</p>
+      <p class="text-sm text-gray-400">A product by <b>PT Sazumi Cloud Inc</b>.</p>
     </footer>
   </div>
   
   <script src="/js/main.js"></script>
+  <script>
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+  </script>
 </body>
 </html> 

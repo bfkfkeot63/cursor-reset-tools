@@ -6,12 +6,14 @@
 
 ![Sazumi Cloud Cursor Reset Tool Preview2](./src/preview-2.png)
 
-A modern web-based tool to reset Cursor IDE's Machine ID, helping users to bypass trial limitations and continue using Cursor AI capabilities.
+A modern web-based tool to reset Cursor IDE's Machine ID, helping users to bypass trial limitations and continue using Cursor AI capabilities. This tool enables bypassing token limits, converting free trial accounts to Pro features, circumventing machine ID restrictions, and preventing automatic updates.
 
-## Features
+## Advanced Bypass Features
 
-- **Machine ID Reset**: Generates a new unique identifier for your machine
-- **Storage Clearance**: Removes user data tracking your Cursor usage
+- **Token Limit Bypass**: Remove restrictions on token usage for AI completions
+- **Pro Trial Conversion**: Access Pro features without purchasing a subscription
+- **Machine ID Reset**: Bypass the "Too many free trial accounts used on this machine" limitation
+- **Auto Update Prevention**: Stop Cursor from updating and potentially removing bypass functionality
 - **Cross-Platform**: Compatible with Windows, macOS, and Linux
 - **User-Friendly Interface**: Clean, modern UI with clear instructions
 - **System Information**: Displays detailed system and Cursor installation info
@@ -68,7 +70,9 @@ This tool:
 1. Detects if Cursor is running (and warns you to close it)
 2. Generates a new UUID to replace your existing machine ID
 3. Clears cached files that store your usage data
-4. Allows Cursor to treat your machine as a new device
+4. Prevents automatic updates that could remove bypass functionality
+5. Modifies system files to unlock Pro features and bypass token limits
+6. Allows Cursor to treat your machine as a new device
 
 ## 💡 Recommended Tips
 
