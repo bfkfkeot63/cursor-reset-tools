@@ -1,10 +1,14 @@
-## Preview Website
+## Preview Website 1
 
-![Sazumi Cloud Cursor Reset Tool Preview](./src/preview.png)
+![Sazumi Cloud Cursor Reset Tool Preview1](./src/preview.png)
 
-## Bypass Pro Trial
+## Preview Website 2
 
-![Sazumi Cloud Cursor Reset Tool Preview2](./src/preview-2.png)
+![Sazumi Cloud Cursor Reset Tool Preview2](./src/preview-3.png)
+
+## Preview Pro Feature 1
+
+![Sazumi Cloud Cursor Reset Tool Preview3](./src/preview-2.png)
 
 A modern web-based tool to reset Cursor IDE's Machine ID, helping users to bypass trial limitations and continue using Cursor AI capabilities. This tool enables bypassing token limits, converting free trial accounts to Pro features, circumventing machine ID restrictions, and preventing automatic updates.
 
