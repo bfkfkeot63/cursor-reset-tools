@@ -2,6 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const si = document.getElementById('system-info');
   const cs = document.getElementById('cursor-status');
   const rb = document.getElementById('reset-btn');
+  const bp = document.getElementById('bypass-btn');
+  const du = document.getElementById('disable-update-btn');
+  const pc = document.getElementById('pro-convert-btn');
   const rr = document.getElementById('reset-result');
   const dm = document.getElementById('disclaimer-modal');
   const ad = document.getElementById('accept-disclaimer');
@@ -60,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cursorHtml += `
           <div class="alert alert-warning">
             <i class="ri-alert-line"></i>
-            <strong>Warning:</strong> Cursor is currently running. Please close it before resetting the machine ID.
+            <strong>Warning:</strong> Cursor is currently running. Please close it before using any features.
           </div>
         `;
       }
@@ -68,6 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
       cs.innerHTML = cursorHtml;
       
       rb.disabled = data.cursor.isRunning;
+      bp.disabled = data.cursor.isRunning;
+      du.disabled = data.cursor.isRunning;
+      pc.disabled = data.cursor.isRunning;
       
       setTimeout(cb, 100);
     } catch (error) {
@@ -141,6 +147,128 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
   
+  const bk = async () => {
+    try {
+      bp.disabled = true;
+      rr.innerHTML = `
+        <div class="processing">
+          <p><i class="ri-loader-2-line ri-spin"></i>Bypassing token limit... Please wait</p>
+        </div>
+      `;
+      
+      const response = await fetch('/api/bypass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        rr.innerHTML = `
+          <div class="success">
+            <p><i class="ri-check-line"></i><strong>Success!</strong> Token limit has been bypassed.</p>
+            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : ''}
+          </div>
+        `;
+      } else {
+        rr.innerHTML = `          <div class="error">
+            <p><i class="ri-error-warning-line"></i><strong>Failed to bypass token limit</strong></p>
+            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : result.errors?.map(err => `<p>${err}</p>`).join('')}
+            ${result.error ? `<p>${result.error}</p>` : ''}
+          </div>
+        `;
+      }
+      
+      await gs();
+    } catch (error) {
+      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>Error: ${error.message}</div>`;
+    } finally {
+      bp.disabled = false;
+    }
+  };
+  
+  const dz = async () => {
+    try {
+      du.disabled = true;
+      rr.innerHTML = `
+        <div class="processing">
+          <p><i class="ri-loader-2-line ri-spin"></i>Disabling auto-update... Please wait</p>
+        </div>
+      `;
+      
+      const response = await fetch('/api/disable-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        rr.innerHTML = `
+          <div class="success">
+            <p><i class="ri-check-line"></i><strong>Success!</strong> Auto-update has been disabled.</p>
+            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : ''}
+          </div>
+        `;
+      } else {
+        rr.innerHTML = `
+          <div class="error">
+            <p><i class="ri-error-warning-line"></i><strong>Failed to disable auto-update</strong></p>
+            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : result.errors?.map(err => `<p>${err}</p>`).join('')}
+            ${result.error ? `<p>${result.error}</p>` : ''}
+          </div>
+        `;
+      }
+      
+      await gs();
+    } catch (error) {
+      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>Error: ${error.message}</div>`;
+    } finally {
+      du.disabled = false;
+    }
+  };
+  
+  const pt = async () => {
+    try {
+      pc.disabled = true;
+      rr.innerHTML = `
+        <div class="processing">
+          <p><i class="ri-loader-2-line ri-spin"></i>Converting to Pro features... Please wait</p>
+        </div>
+      `;
+      
+      const response = await fetch('/api/pro-convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        rr.innerHTML = `
+          <div class="success">
+            <p><i class="ri-check-line"></i><strong>Success!</strong> Pro features have been activated.</p>
+            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : ''}
+          </div>
+        `;
+      } else {
+        rr.innerHTML = `
+          <div class="error">
+            <p><i class="ri-error-warning-line"></i><strong>Failed to activate Pro features</strong></p>
+            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : result.errors?.map(err => `<p>${err}</p>`).join('')}
+            ${result.error ? `<p>${result.error}</p>` : ''}
+          </div>
+        `;
+      }
+      
+      await gs();
+    } catch (error) {
+      rr.innerHTML = `<div class="error"><i class="ri-error-warning-line"></i>Error: ${error.message}</div>`;
+    } finally {
+      pc.disabled = false;
+    }
+  };
+  
   const ta = () => {
     const accordionItems = document.querySelectorAll('.accordion-item');
     
@@ -202,6 +330,9 @@ document.addEventListener('DOMContentLoaded', () => {
   pl();
   gs();
   rb.addEventListener('click', rm);
+  bp.addEventListener('click', bk);
+  du.addEventListener('click', dz);
+  pc.addEventListener('click', pt);
   
   setTimeout(() => {
     ta();

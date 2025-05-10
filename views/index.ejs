@@ -117,7 +117,12 @@
             <i class="ri-information-line"></i>
             <strong>Important:</strong> Make sure Cursor is closed before resetting the machine ID.
           </div>
-          <button id="reset-btn" class="btn"><i class="ri-refresh-line"></i>Reset Machine ID</button>
+          <div class="action-grid">
+            <button id="reset-btn" class="btn"><i class="ri-refresh-line"></i>Reset Machine ID</button>
+            <button id="bypass-btn" class="btn btn-warning"><i class="ri-shield-flash-line"></i>Bypass Token Limit</button>
+            <button id="disable-update-btn" class="btn btn-info"><i class="ri-lock-line"></i>Disable Auto-Update</button>
+            <button id="pro-convert-btn" class="btn btn-success"><i class="ri-vip-crown-line"></i>Pro Conversion</button>
+          </div>
           <div id="reset-result"></div>
         </div>
       </div>
@@ -285,6 +290,25 @@ sudo npm start</div>
         </div>
         <div class="card-body">
           <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="version-header">
+                  <span class="version-tag">v1.4.0</span>
+                  <span class="timeline-date">May 2025</span>
+                </div>
+                <div class="timeline-card">
+                  <ul class="version-changes">
+                    <li><span class="change-type added">Added</span> Bypass token limit feature (experimental - still finding workarounds)</li>
+                    <li><span class="change-type added">Added</span> Disable auto-update feature to prevent automatic updates</li>
+                    <li><span class="change-type added">Added</span> Pro conversion tool for enabling premium features</li>
+                    <li><span class="change-type improved">Fixed</span> MacOS functionality issues across all features</li>
+                    <li><span class="change-type improved">Improved</span> Overall stability and compatibility with latest Cursor versions</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">

@@ -1096,4 +1096,41 @@ tr:nth-child(even) {
 .log-output::-webkit-scrollbar-thumb {
   background-color: var(--accent-color);
   border-radius: 3px;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.action-grid .btn {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.action-grid .btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-warning {
+  background: #ff9800;
+  color: #fff;
+}
+
+.btn-info {
+  background: #03a9f4;
+  color: #fff;
+}
+
+.btn-success {
+  background: #4caf50;
+  color: #fff;
 } 
