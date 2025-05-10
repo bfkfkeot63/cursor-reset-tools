@@ -6,7 +6,7 @@
 
 ![Sazumi Cloud Cursor Reset Tool Preview2](./src/preview-3.png)
 
-## Preview Pro Feature 1
+## Preview Pro Feature
 
 ![Sazumi Cloud Cursor Reset Tool Preview3](./src/preview-2.png)
 
