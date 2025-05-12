@@ -912,7 +912,6 @@ tr:nth-child(even) {
   position: relative;
   margin: 0 0 0 20px;
   padding-left: 20px;
-  border-left: 2px solid var(--accent-color);
 }
 
 .timeline-item {
@@ -1160,4 +1159,249 @@ tr:nth-child(even) {
 .btn-success {
   background: #4caf50;
   color: #fff;
+}
+
+.atomic-email-container {
+  margin-top: 1rem;
+}
+
+.email-details {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  border: 1px solid #e9ecef;
+  box-shadow: none;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #fff;
+  border-radius: 4px;
+  box-shadow: none;
+  border: 1px solid #f1f3f5;
+}
+
+.detail-label {
+  font-weight: 500;
+  min-width: 120px;
+  color: #333;
+  font-family: 'Google Sans', -apple-system, sans-serif;
+}
+
+.detail-value {
+  flex: 1;
+  font-family: 'Google Sans', -apple-system, sans-serif;
+  word-break: break-all;
+  padding: 0.25rem 0.5rem;
+  background-color: #f1f3f5;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  color: #0066cc;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  margin-left: 0.5rem;
+}
+
+.copy-btn:hover {
+  background-color: #e9ecef;
+}
+
+.verification-status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #fff8e1;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 202, 40, 0.3);
+  border-radius: 50%;
+  border-top-color: #ffca28;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.hidden {
+  display: none;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.verification-code-container {
+  border-top: 1px solid #e9ecef;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  background-color: #e8f5e9;
+  box-shadow: none;
+}
+
+#verification-code {
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  color: #1b5e20;
+  background-color: #c8e6c9;
+  font-family: 'Google Sans', -apple-system, sans-serif;
+}
+
+.copied {
+  animation: copy-animation 1.5s ease;
+}
+
+@keyframes copy-animation {
+  0% { background-color: #c8e6c9; }
+  70% { background-color: #c8e6c9; }
+  100% { background-color: transparent; }
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 350px;
+}
+
+.toast {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: toast-in 0.3s ease forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.toast-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 15px;
+  flex: 1;
+}
+
+.toast-content i {
+  margin-top: 3px;
+}
+
+.toast-content span {
+  font-size: 14px;
+  color: #333;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: #777;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: all 0.2s;
+}
+
+.toast-close:hover {
+  color: #333;
+}
+
+.toast-error i {
+  color: #f44336;
+}
+
+.toast-success i {
+  color: #4caf50;
+}
+
+.toast-info i {
+  color: #2196f3;
+}
+
+.toast-warning i {
+  color: #ff9800;
+}
+
+.toast-closing {
+  animation: toast-out 0.3s ease forwards;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+.rotating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  position: relative;
+}
+
+.rotating i {
+  position: absolute;
+  animation: spin 1s linear infinite;
+  transform-origin: center;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
 } 

@@ -126,6 +126,47 @@
           <div id="reset-result"></div>
         </div>
       </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="ri-mail-line"></i>Atomic Email Generator</h2>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <i class="ri-information-line"></i>
+            <strong>Note:</strong> When you encounter "too many requests" errors, you MUST change your IP address by toggling your mobile data OFF and ON.
+          </div>
+          <div class="atomic-email-container">
+            <div class="action-grid">
+              <button id="create-email-btn" class="btn btn-primary"><span class="btn-content"><i class="ri-add-line"></i>Create Atomic Email</span></button>
+              <button id="check-code-btn" class="btn btn-secondary" disabled><span class="btn-content"><i class="ri-mail-check-line"></i>Check Verification Code</span></button>
+            </div>
+            <div id="email-result" class="mt-4">
+              <div class="email-details hidden">
+                <div class="detail-item">
+                  <span class="detail-label">Email:</span>
+                  <span id="email-address" class="detail-value"></span>
+                  <button id="copy-email-btn" class="copy-btn" data-target="email-address"><i class="ri-file-copy-line"></i></button>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Password:</span>
+                  <span id="email-password" class="detail-value"></span>
+                  <button id="copy-password-btn" class="copy-btn" data-target="email-password"><i class="ri-file-copy-line"></i></button>
+                </div>
+                <div class="detail-item verification-code-container hidden">
+                  <span class="detail-label">Verification Code:</span>
+                  <span id="verification-code" class="detail-value"></span>
+                  <button id="copy-code-btn" class="copy-btn" data-target="verification-code"><i class="ri-file-copy-line"></i></button>
+                </div>
+              </div>
+              <div class="verification-status hidden">
+                <div class="loading-spinner"></div>
+                <span>Waiting for verification code from Cursor...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
     
     <section id="requirements">
@@ -203,9 +244,11 @@
                 <p>For best results when creating new Cursor accounts:</p>
                 <ul>
                   <li><strong>Use our Disposable Email:</strong> <a href="https://mail.sazumi.com" target="_blank" style="color: #0000FF;">Sazumi Cloud - Email Disposable</a> works well with Cursor and doesn't get blocked</li>
+                  <li><strong>Use our Atomic Email Generator:</strong> The integrated atomic email generator creates disposable emails and captures verification codes automatically</li>
                   <li>Reset machine ID before each new registration</li>
                   <li>Use private/incognito browser window for registration</li>
                   <li>Clear browser cookies after registration</li>
+                  <li>If you encounter "too many requests" errors with atomic mail, toggle your mobile data to change your IP address</li>
                 </ul>
               </div>
             </div>
@@ -301,6 +344,7 @@ sudo npm start</div>
                   <ul class="version-changes">
                     <li><span class="change-type improved">Improved</span> Enhanced SQLite database handling for more reliable resets</li>
                     <li><span class="change-type added">Added</span> Proper backup of all files before modification</li>
+                    <li><span class="change-type added">Added</span> Atomic Email Generator for automatic disposable email creation</li>
                     <li><span class="change-type improved">Improved</span> Windows registry updates for complete system ID refresh</li>
                     <li><span class="change-type improved">Fixed</span> Better handling of telemetry IDs across all platforms</li>
                     <li><span class="change-type improved">Improved</span> getMachineId patching in Cursor 0.49+ versions</li>

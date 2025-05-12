@@ -341,4 +341,180 @@ document.addEventListener('DOMContentLoaded', () => {
     tl();
     td();
   }, 500);
-}); 
+});
+
+let currentUsername = null;
+let currentPassword = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+  const createEmailBtn = document.getElementById('create-email-btn');
+  const checkCodeBtn = document.getElementById('check-code-btn');
+  const emailDetails = document.querySelector('.email-details');
+  const verificationStatus = document.querySelector('.verification-status');
+  const verificationCodeContainer = document.querySelector('.verification-code-container');
+  
+  if (createEmailBtn) {
+    createEmailBtn.addEventListener('click', createEmail);
+  }
+  
+  if (checkCodeBtn) {
+    checkCodeBtn.addEventListener('click', checkVerificationCode);
+  }
+  
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', copyToClipboard);
+  });
+});
+
+function createEmail() {
+  const createEmailBtn = document.getElementById('create-email-btn');
+  const checkCodeBtn = document.getElementById('check-code-btn');
+  const emailDetails = document.querySelector('.email-details');
+  const verificationStatus = document.querySelector('.verification-status');
+  const verificationCodeContainer = document.querySelector('.verification-code-container');
+  
+  createEmailBtn.disabled = true;
+  createEmailBtn.innerHTML = '<span class="btn-content"><span class="rotating"><i class="ri-loader-line"></i></span>Creating...</span>';
+  
+  emailDetails.classList.add('hidden');
+  verificationStatus.classList.add('hidden');
+  verificationCodeContainer.classList.add('hidden');
+  
+  fetch('/api/email/create', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    createEmailBtn.disabled = false;
+    createEmailBtn.innerHTML = '<span class="btn-content"><i class="ri-add-line"></i>Create Atomic Email</span>';
+    
+    if (data.success) {
+      document.getElementById('email-address').textContent = data.email;
+      document.getElementById('email-password').textContent = data.password;
+      emailDetails.classList.remove('hidden');
+      
+      currentUsername = data.email.split('@')[0];
+      currentPassword = data.password;
+      
+      checkCodeBtn.disabled = false;
+    } else {
+      showToast(data.message || 'IP address limit reached. Toggle your mobile data to change IP.', 'error');
+    }
+  })
+  .catch(error => {
+    createEmailBtn.disabled = false;
+    createEmailBtn.innerHTML = '<span class="btn-content"><i class="ri-add-line"></i>Create Atomic Email</span>';
+    showToast('Connection error. Check your internet or change your IP.', 'error');
+  });
+}
+
+function checkVerificationCode() {
+  if (!currentUsername || !currentPassword) {
+    showToast('Please create an email first', 'warning');
+    return;
+  }
+  
+  const checkCodeBtn = document.getElementById('check-code-btn');
+  const verificationStatus = document.querySelector('.verification-status');
+  const verificationCodeContainer = document.querySelector('.verification-code-container');
+  
+  checkCodeBtn.disabled = true;
+  checkCodeBtn.innerHTML = '<span class="btn-content"><span class="rotating"><i class="ri-loader-line"></i></span>Checking...</span>';
+  
+  verificationStatus.classList.remove('hidden');
+  verificationCodeContainer.classList.add('hidden');
+  
+  fetch('/api/email/monitor', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      username: currentUsername,
+      password: currentPassword
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    checkCodeBtn.disabled = false;
+    checkCodeBtn.innerHTML = '<span class="btn-content"><i class="ri-mail-check-line"></i>Check Verification Code</span>';
+    verificationStatus.classList.add('hidden');
+    
+    if (data.success && data.verificationCode) {
+      document.getElementById('verification-code').textContent = data.verificationCode;
+      verificationCodeContainer.classList.remove('hidden');
+    } else {
+      showToast(data.message || 'IP address limit reached. Toggle your mobile data to change IP.', 'error');
+    }
+  })
+  .catch(error => {
+    checkCodeBtn.disabled = false;
+    checkCodeBtn.innerHTML = '<span class="btn-content"><i class="ri-mail-check-line"></i>Check Verification Code</span>';
+    verificationStatus.classList.add('hidden');
+    showToast('Connection error. Check your internet or change your IP.', 'error');
+  });
+}
+
+function copyToClipboard(e) {
+  const targetId = e.currentTarget.dataset.target;
+  const textToCopy = document.getElementById(targetId).textContent;
+  const textArea = document.createElement('textarea');
+  
+  textArea.value = textToCopy;
+  document.body.appendChild(textArea);
+  textArea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textArea);
+  
+  const originalHtml = e.currentTarget.innerHTML;
+  e.currentTarget.innerHTML = '<i class="ri-check-line"></i>';
+  document.getElementById(targetId).classList.add('copied');
+  
+  setTimeout(() => {
+    e.currentTarget.innerHTML = originalHtml;
+    document.getElementById(targetId).classList.remove('copied');
+  }, 1500);
+}
+
+function showToast(message, type = 'info') {
+  let toastContainer = document.querySelector('.toast-container');
+  
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.body.appendChild(toastContainer);
+  }
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <div class="toast-content">
+      <i class="ri-${type === 'error' ? 'error-warning-line' : type === 'success' ? 'check-line' : 'information-line'}"></i>
+      <span>${message}</span>
+    </div>
+    <button class="toast-close"><i class="ri-close-line"></i></button>
+  `;
+  
+  toastContainer.appendChild(toast);
+  
+  toast.querySelector('.toast-close').addEventListener('click', () => {
+    toast.classList.add('toast-closing');
+    setTimeout(() => {
+      toastContainer.removeChild(toast);
+    }, 300);
+  });
+  
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.classList.add('toast-closing');
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toastContainer.removeChild(toast);
+        }
+      }, 300);
+    }
+  }, 5000);
+} 
