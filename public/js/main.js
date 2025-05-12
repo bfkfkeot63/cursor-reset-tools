@@ -111,29 +111,28 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = await response.json();
       
       if (result.success) {
-        if (result.formatted) {
-          rr.innerHTML = `
-            <div class="success">
-              <p><i class="ri-check-line"></i><strong>Success!</strong> Machine ID has been reset.</p>
-              <pre class="log-output">${result.formatted}</pre>
-            </div>
-          `;
-        } else {
-          rr.innerHTML = `
-            <div class="success">
-              <p><i class="ri-check-line"></i><strong>Success!</strong> Machine ID has been reset.</p>
-              ${result.created ? '<p>Machine ID file was created since it did not exist.</p>' : ''}
-              <p>New Machine ID: <div class="code-block">${result.newIds?.uuid || (result.newMachineId || 'Generated')}</div></p>
-              <p>Storage file: ${result.storageUpdated ? 'Updated' : (result.storageNotFound ? 'Not found' : 'Failed to update')}</p>
-              <p>SQLite file: ${result.sqliteUpdated ? 'Updated' : (result.sqliteNotFound ? 'Not found' : 'Failed to update')}</p>
-            </div>
-          `;
-        }
+        rr.innerHTML = `
+          <div class="success">
+            <p><i class="ri-check-line"></i><strong>Success!</strong> Machine ID has been reset.</p>
+            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : ''}
+            ${!result.formatted ? `
+              <p>New Machine IDs:</p>
+              <table class="result-table">
+                <tr><th>telemetry.devDeviceId</th><td>${result.newIds?.uuid || 'Generated'}</td></tr>
+                <tr><th>telemetry.macMachineId</th><td>${result.newIds?.macMachineId || 'Generated'}</td></tr>
+                <tr><th>telemetry.machineId</th><td>${result.newIds?.machineId || 'Generated'}</td></tr>
+                <tr><th>telemetry.sqmId</th><td>${result.newIds?.sqmId || 'Generated'}</td></tr>
+                <tr><th>storage.serviceMachineId</th><td>${result.newIds?.uuid || 'Generated'}</td></tr>
+              </table>
+            ` : ''}
+          </div>
+        `;
       } else {
         rr.innerHTML = `
           <div class="error">
             <p><i class="ri-error-warning-line"></i><strong>Failed to reset machine ID</strong></p>
-            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : result.errors?.map(err => `<p>${err}</p>`).join('')}
+            ${result.formatted ? `<pre class="log-output">${result.formatted}</pre>` : ''}
+            ${result.error ? `<p>Error: ${result.error}</p>` : ''}
           </div>
         `;
       }

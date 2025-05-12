@@ -5,6 +5,8 @@ import fs from 'fs-extra';
 import pkg from 'node-machine-id';
 import os from 'os';
 import path from 'path';
+import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
@@ -131,6 +133,49 @@ const gn = () => {
     macMachineId: crypto.createHash('sha512').update(uuidv4()).digest('hex'),
     sqmId: `{${uuidv4().toUpperCase()}}`
   };
+};
+
+const ur = async (path, key, value) => {
+  try {
+    const db = await open({
+      filename: path,
+      driver: sqlite3.Database
+    });
+    
+    await db.run('UPDATE ItemTable SET value = ? WHERE key = ?', [JSON.stringify(value), key]);
+    lo.info(`Updating Key-Value Pair: ${key}`);
+    await db.close();
+    return true;
+  } catch (error) {
+    lo.error(`Failed to update key ${key}: ${error.message}`);
+    return false;
+  }
+};
+
+const ud = async (dbPath, updates) => {
+  try {
+    if (!fs.existsSync(dbPath)) {
+      lo.error(`SQLite database not found: ${dbPath}`);
+      return false;
+    }
+    
+    lo.info('Updating SQLite Database...');
+    const db = await open({
+      filename: dbPath,
+      driver: sqlite3.Database
+    });
+    
+    for (const [key, value] of Object.entries(updates)) {
+      await ur(dbPath, key, value);
+    }
+    
+    await db.close();
+    lo.success('SQLite Database Updated Successfully');
+    return true;
+  } catch (error) {
+    lo.error(`Failed to update SQLite database: ${error.message}`);
+    return false;
+  }
 };
 
 const us = async (db, key, value) => {
@@ -505,97 +550,99 @@ const rm = async () => {
       lo.success('Cursor closed successfully');
     }
     
-    const pt = os.platform();
-    let storagePath = '';
-    let machineIdPath = '';
+    const paths = pa();
+    lo.info('Checking Config File...');
     
-    if (pt === 'win32') {
-      storagePath = path.join(os.homedir(), 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'storage.json');
-      machineIdPath = path.join(os.homedir(), 'AppData', 'Roaming', 'Cursor', 'machineId');
-    } else if (pt === 'darwin') {
-      storagePath = path.join(os.homedir(), 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'storage.json');
-      machineIdPath = path.join(os.homedir(), 'Library', 'Application Support', 'Cursor', 'machineId');
+    if (fs.existsSync(paths.storage)) {
+      lo.info('Reading Current Config...');
+      const backup = rb(paths.storage);
+      if (backup) {
+        lo.info(`Creating Config Backup: ${backup}`);
+      }
       
-      await hm();
-    } else {
-      storagePath = path.join(os.homedir(), '.config', 'Cursor', 'User', 'globalStorage', 'storage.json');
-      machineIdPath = path.join(os.homedir(), '.config', 'cursor', 'machineid');
-    }
-    
-    lo.info('Generating new IDs...');
-    const newIds = {
-      machineId: uuidv4(),
-      macMachineId: uuidv4(),
-      devDeviceId: uuidv4(),
-      sqmId: `{${uuidv4().toUpperCase()}}`
-    };
-    
-    lo.info(`Updating machine ID file: ${machineIdPath}`);
-    if (fs.existsSync(machineIdPath)) {
-      const backup = rb(machineIdPath);
+      lo.info('Generating New Machine ID...');
+      const newIds = gn();
+      
       if (backup) {
-        lo.info(`Backup created: ${backup}`);
+        lo.info('Backup Created');
       }
-      fs.writeFileSync(machineIdPath, newIds.machineId);
-      lo.success('Machine ID file updated');
-    } else {
-      fs.ensureFileSync(machineIdPath);
-      fs.writeFileSync(machineIdPath, newIds.machineId);
-      lo.success('Machine ID file created');
-    }
-    
-    if (fs.existsSync(storagePath)) {
-      lo.info(`Updating storage file: ${storagePath}`);
-      const backup = rb(storagePath);
-      if (backup) {
-        lo.info(`Backup created: ${backup}`);
-      }
+      lo.success('Update Success');
       
       try {
-        const data = fs.readJsonSync(storagePath);
+        const data = fs.readJsonSync(paths.storage);
         
         if (!data.telemetry) data.telemetry = {};
-        
-        data.telemetry.machineId = newIds.machineId;
-        data.telemetry.macMachineId = newIds.macMachineId;
-        data.telemetry.devDeviceId = newIds.devDeviceId;
-        data.telemetry.sqmId = newIds.sqmId;
-        
         if (!data.cursor) data.cursor = {};
         if (!data.cursor.aiChat) data.cursor.aiChat = {};
         if (!data.cursor.experimental) data.cursor.experimental = {};
+        if (!data.storage) data.storage = {};
+        
+        data.telemetry.machineId = newIds.machineId;
+        data.telemetry.macMachineId = newIds.macMachineId;
+        data.telemetry.devDeviceId = newIds.uuid;
+        data.telemetry.sqmId = newIds.sqmId;
+        data.storage.serviceMachineId = newIds.uuid;
         
         data.cursor.aiChat.lastTokenLimitResetDate = new Date().toISOString();
         data.cursor.aiChat.tokensConsumedInPeriod = 0;
         data.cursor.experimental.aiChatTokenLimits = {};
         data.cursor.experimental.aiChatLastLimitReset = new Date().toISOString();
         
-        fs.writeJsonSync(storagePath, data, { spaces: 2 });
-        lo.success('Storage file updated successfully');
+        lo.info('Saving New Config to JSON...');
+        fs.writeJsonSync(paths.storage, data, { spaces: 2 });
+        
+        if (fs.existsSync(paths.sqlite)) {
+          await ud(paths.sqlite, {
+            'telemetry.devDeviceId': newIds.uuid,
+            'telemetry.macMachineId': newIds.macMachineId,
+            'telemetry.machineId': newIds.machineId,
+            'telemetry.sqmId': newIds.sqmId,
+            'storage.serviceMachineId': newIds.uuid
+          });
+        }
+        
       } catch (error) {
         lo.error(`Failed to update storage.json: ${error.message}`);
       }
     } else {
-      lo.error(`Storage file not found: ${storagePath}`);
+      lo.error(`Storage file not found: ${paths.storage}`);
     }
     
-    if (pt === 'win32') {
-      lo.info('Updating Windows registry...');
-      try {
-        const guid = `{${uuidv4().toUpperCase()}}`;
-        await ex(`REG ADD HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${guid} /f`);
-        lo.success('Windows Machine GUID Updated Successfully');
-      } catch (error) {
-        lo.error(`Failed to update registry: ${error.message}`);
+    lo.info('Updating machine ID file...');
+    if (fs.existsSync(paths.machineId)) {
+      const backup = rb(paths.machineId);
+      if (backup) {
+        lo.info(`Backup created: ${backup}`);
       }
+      const newId = uuidv4();
+      fs.writeFileSync(paths.machineId, newId);
+      lo.success('Machine ID file updated');
+    } else {
+      fs.ensureFileSync(paths.machineId);
+      const newId = uuidv4();
+      fs.writeFileSync(paths.machineId, newId);
+      lo.success('Machine ID file created');
     }
     
+    const pt = os.platform();
+    if (pt === 'win32') {
+      await uw();
+    } else if (pt === 'darwin') {
+      await mp();
+      await lp();
+      await hm();
+    }
+    
+    const patchRes = await pm();
+    
+    const newIds = gn();
     lo.success('Machine ID Reset Successfully');
-    lo.info('\nNew Machine IDs:');
-    lo.info(`machineId: ${newIds.machineId}`);
-    lo.info(`macMachineId: ${newIds.macMachineId}`);
-    lo.info(`devDeviceId: ${newIds.devDeviceId}`);
-    lo.info(`sqmId: ${newIds.sqmId}`);
+    lo.info('\nNew Machine ID:');
+    lo.info(`telemetry.devDeviceId: ${newIds.uuid}`);
+    lo.info(`telemetry.macMachineId: ${newIds.macMachineId}`);
+    lo.info(`telemetry.machineId: ${newIds.machineId}`);
+    lo.info(`telemetry.sqmId: ${newIds.sqmId}`);
+    lo.info(`storage.serviceMachineId: ${newIds.uuid}`);
     
     return {
       success: true,
