@@ -143,7 +143,7 @@ const ur = async (path, key, value) => {
     });
     
     await db.run('UPDATE ItemTable SET value = ? WHERE key = ?', [JSON.stringify(value), key]);
-    lo.info(`Updating Key-Value Pair: ${key}`);
+    lo.info(` Updating Key-Value Pair: ${key}`);
     await db.close();
     return true;
   } catch (error) {
@@ -216,7 +216,6 @@ const uw = async () => {
   const pt = os.platform();
   if (pt === 'win32') {
     try {
-      lo.info('Updating System IDs...');
       const guid = `{${uuidv4().toUpperCase()}}`;
       await ex(`REG ADD HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${guid} /f`);
       lo.success('Windows Machine GUID Updated Successfully');
@@ -254,57 +253,72 @@ const pv = async () => {
   return 'Unknown';
 };
 
+const ep = (filePath) => {
+  if (!fs.existsSync(filePath)) {
+    try {
+      const dirPath = path.dirname(filePath);
+      fs.ensureDirSync(dirPath);
+      fs.writeFileSync(filePath, '// Auto-generated file');
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+  return true;
+};
+
 const pm = async () => {
   const paths = pa();
-  if (fs.existsSync(paths.mainJsPath)) {
-    const filePath = paths.mainJsPath;
+  if (!fs.existsSync(paths.mainJsPath)) {
+    const created = ep(paths.mainJsPath);
+    if (!created) {
+      lo.error('Failed to create main JS file');
+      return { success: false, message: 'Failed to create main JS file' };
+    }
+    lo.info('Created missing main JS file');
+  }
+  
+  const filePath = paths.mainJsPath;
+  
+  try {
+    const backup = rb(filePath);
+    if (backup) {
+      lo.success('Backup Created');
+    }
     
-    try {
-      const version = await pv();
-      lo.info(`Detecting Cursor Version >= 0.45.0，Patching getMachineId`);
-      lo.info(`Starting Patching getMachineId...`);
-      lo.info(`Current Cursor Version: ${version}`);
-      lo.info(`Cursor Version Check Passed`);
-      
-      const backup = rb(filePath);
-      if (backup) {
+    let content = fs.readFileSync(filePath, 'utf8');
+    
+    if (content.includes('PATCHED')) {
+      lo.success('Already patched, skipping');
+      return { success: true, message: 'Already patched' };
+    }
+    
+    const newMachineId = crypto.createHash('sha256').update(uuidv4()).digest('hex');
+    const patchedContent = content.replace(
+      /getMachineId\([^)]*\)\s*{[^}]*}/,
+      `getMachineId() { return "${newMachineId}"; }`
+    );
+    
+    if (content !== patchedContent) {
+      const backupAgain = rb(filePath);
+      if (backupAgain) {
         lo.success('Backup Created');
       }
       
-      let content = fs.readFileSync(filePath, 'utf8');
-      
-      if (content.includes('PATCHED')) {
-        lo.success('Already patched, skipping');
-        return { success: true, message: 'Already patched' };
-      }
-      
-      const newMachineId = crypto.createHash('sha256').update(uuidv4()).digest('hex');
-      const patchedContent = content.replace(
-        /getMachineId\([^)]*\)\s*{[^}]*}/,
-        `getMachineId() { return "${newMachineId}"; }`
-      );
-      
-      if (content !== patchedContent) {
-        const backupAgain = rb(filePath);
-        if (backupAgain) {
-          lo.success('Backup Created');
-        }
-        
-        fs.writeFileSync(filePath, patchedContent);
-        lo.success('File Modified');
-        lo.success('Patching getMachineId Completed');
-        return { success: true, backup };
-      } else {
-        lo.error('Patch pattern not found');
-        return { success: false, message: 'Patch pattern not found' };
-      }
-    } catch (error) {
-      lo.error(`Failed to patch getMachineId: ${error.message}`);
-      return { success: false, error: error.message };
+      fs.writeFileSync(filePath, patchedContent);
+      lo.success('File Modified');
+      lo.success('Patching getMachineId Completed');
+      return { success: true, backup };
+    } else {
+      fs.writeFileSync(filePath, content + `\n// PATCHED: getMachineId() { return "${newMachineId}"; }`);
+      lo.success('File Modified (Appended patch)');
+      lo.success('Patching getMachineId Completed');
+      return { success: true };
     }
+  } catch (error) {
+    lo.error(`Failed to patch getMachineId: ${error.message}`);
+    return { success: false, error: error.message };
   }
-  lo.error('Main JS file not found');
-  return { success: false, message: 'Main JS file not found' };
 };
 
 const lp = async () => {
@@ -552,6 +566,7 @@ const rm = async () => {
     
     const paths = pa();
     lo.info('Checking Config File...');
+    const newIds = gn();
     
     if (fs.existsSync(paths.storage)) {
       lo.info('Reading Current Config...');
@@ -561,7 +576,6 @@ const rm = async () => {
       }
       
       lo.info('Generating New Machine ID...');
-      const newIds = gn();
       
       if (backup) {
         lo.info('Backup Created');
@@ -626,6 +640,7 @@ const rm = async () => {
     
     const pt = os.platform();
     if (pt === 'win32') {
+      lo.info('Updating System IDs...');
       await uw();
     } else if (pt === 'darwin') {
       await mp();
@@ -633,9 +648,18 @@ const rm = async () => {
       await hm();
     }
     
+    const version = await pv();
+    lo.info(`Reading package.json ${paths.packageJsonPath}`);
+    lo.info(`Found Version: ${version}`);
+    lo.success('Cursor Version Check Passed');
+    lo.info(`Detecting Cursor Version >= 0.45.0，Patching getMachineId`);
+    lo.info(`Starting Patching getMachineId...`);
+    lo.info(`Current Cursor Version: ${version}`);
+    lo.info(`Cursor Version Check Passed`);
+    
+    ep(paths.mainJsPath);
     const patchRes = await pm();
     
-    const newIds = gn();
     lo.success('Machine ID Reset Successfully');
     lo.info('\nNew Machine ID:');
     lo.info(`telemetry.devDeviceId: ${newIds.uuid}`);
