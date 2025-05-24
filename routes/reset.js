@@ -321,6 +321,9 @@ const ep = async () => {
     
     logs.push("✅ Pro features enabled successfully");
     
+    const uiResult = await mc();
+    logs.push(...uiResult.logs.split('\n'));
+    
     return { 
       success: true, 
       message: 'Pro features enabled successfully',
@@ -334,6 +337,113 @@ const ep = async () => {
       logs: await ld(logs)
     };
   }
+};
+
+const mc = async () => {
+  const logs = [];
+  const { pt } = gp();
+  
+  try {
+    logs.push("ℹ️ Starting UI customization...");
+    
+    let uiPaths = [];
+    
+    if (pt === 'win32') {
+      uiPaths = [
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app', 'out'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app', 'dist')
+      ];
+    } else if (pt === 'darwin') {
+      uiPaths = [
+        path.join('/Applications', 'Cursor.app', 'Contents', 'Resources', 'app', 'out'),
+        path.join('/Applications', 'Cursor.app', 'Contents', 'Resources', 'app', 'dist')
+      ];
+    } else if (pt === 'linux') {
+      uiPaths = [
+        path.join('/usr', 'share', 'cursor', 'resources', 'app', 'out'),
+        path.join('/usr', 'share', 'cursor', 'resources', 'app', 'dist'),
+        path.join('/opt', 'Cursor', 'resources', 'app', 'out'),
+        path.join('/opt', 'Cursor', 'resources', 'app', 'dist')
+      ];
+    }
+    
+    let modifiedFiles = 0;
+    
+    for (const basePath of uiPaths) {
+      if (!fs.existsSync(basePath)) continue;
+      
+      logs.push(`ℹ️ Searching in ${basePath}...`);
+      
+      const jsFiles = await findFiles(basePath, '.js');
+      const htmlFiles = await findFiles(basePath, '.html');
+      const allFiles = [...jsFiles, ...htmlFiles];
+      
+      for (const file of allFiles) {
+        try {
+          const content = await fs.readFile(file, 'utf8');
+          if (content.includes('Pro Trial')) {
+            await wb(file);
+            logs.push(`💾 Creating backup for ${file}`);
+            
+            const newContent = content
+              .replace(/Pro Trial/g, '<b>Pro</b> by sazumi cloud')
+              .replace(/"Pro Trial"/g, '"Pro by sazumi cloud"')
+              .replace(/'Pro Trial'/g, "'Pro by sazumi cloud'");
+            
+            await fs.writeFile(file, newContent);
+            logs.push(`✅ Modified ${file}`);
+            modifiedFiles++;
+          }
+        } catch (err) {
+          logs.push(`⚠️ Error processing ${file}: ${err.message}`);
+        }
+      }
+    }
+    
+    if (modifiedFiles === 0) {
+      logs.push("ℹ️ No UI files found containing 'Pro Trial'. UI customization skipped.");
+    } else {
+      logs.push(`✅ UI customization complete. Modified ${modifiedFiles} files.`);
+    }
+    
+    return { 
+      success: true, 
+      message: modifiedFiles > 0 ? 'UI customization successful' : 'UI customization skipped (no files found)',
+      logs: await ld(logs)
+    };
+  } catch (error) {
+    logs.push(`❌ Error during UI customization: ${error.message}`);
+    return { 
+      success: false, 
+      message: `Failed to customize UI: ${error.message}`,
+      logs: await ld(logs)
+    };
+  }
+};
+
+const findFiles = async (dir, extension) => {
+  let results = [];
+  
+  try {
+    const list = await fs.readdir(dir);
+    
+    for (const file of list) {
+      const filePath = path.join(dir, file);
+      const stat = await fs.stat(filePath);
+      
+      if (stat.isDirectory()) {
+        if (!file.startsWith('.') && file !== 'node_modules') {
+          const subResults = await findFiles(filePath, extension);
+          results = [...results, ...subResults];
+        }
+      } else if (path.extname(file) === extension) {
+        results.push(filePath);
+      }
+    }
+  } catch (err) {
+  }
+  
+  return results;
 };
 
 const go = () => {
