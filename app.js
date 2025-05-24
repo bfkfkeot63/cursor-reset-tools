@@ -2,7 +2,6 @@ import cors from 'cors';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import emailRouter from './routes/email.js';
 import resetRouter from './routes/reset.js';
 
 const app = express();
@@ -23,7 +22,6 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api', resetRouter);
-app.use('/api/email', emailRouter);
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);

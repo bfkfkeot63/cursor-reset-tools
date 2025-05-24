@@ -1,1108 +1,480 @@
-import { exec } from 'child_process';
-import crypto from 'crypto';
 import express from 'express';
 import fs from 'fs-extra';
-import pkg from 'node-machine-id';
-import os from 'os';
 import path from 'path';
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
-import { fileURLToPath } from 'url';
-import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
-
-const ex = promisify(exec);
-const { machineIdSync } = pkg;
+import os from 'os';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import crypto from 'crypto';
+import util from 'util';
 
 const rt = express.Router();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
-const pa = () => {
+const gp = () => {
   const pt = os.platform();
-  const hd = os.homedir();
-  
+  const hm = os.homedir();
+  let mp = '';
+  let sp = '';
+  let dp = '';
+  let ap = '';
+
   if (pt === 'win32') {
-    return {
-      storage: path.join(hd, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'storage.json'),
-      sqlite: path.join(hd, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'state.vscdb'),
-      machineId: path.join(hd, 'AppData', 'Roaming', 'Cursor', 'machineId'),
-      cursorPath: path.join(hd, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app'),
-      updaterPath: path.join(hd, 'AppData', 'Local', 'cursor-updater'),
-      updateYmlPath: path.join(hd, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app-update.yml'),
-      productJsonPath: path.join(hd, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app', 'product.json'),
-      packageJsonPath: path.join(hd, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app', 'package.json'),
-      mainJsPath: path.join(hd, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app', 'out', 'vs', 'platform', 'telemetry', 'node', 'telemetryService.js')
-    };
+    mp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'machineId');
+    sp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'storage.json');
+    dp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'state.vscdb');
+    ap = path.join(hm, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app', 'package.json');
   } else if (pt === 'darwin') {
-    return {
-      storage: path.join(hd, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'storage.json'),
-      sqlite: path.join(hd, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'state.vscdb'),
-      machineId: path.join(hd, 'Library', 'Application Support', 'Cursor', 'machineId'),
-      cursorPath: '/Applications/Cursor.app/Contents/Resources/app',
-      updaterPath: path.join(hd, 'Library', 'Application Support', 'cursor-updater'),
-      updateYmlPath: '/Applications/Cursor.app/Contents/Resources/app-update.yml',
-      productJsonPath: '/Applications/Cursor.app/Contents/Resources/app/product.json',
-      packageJsonPath: '/Applications/Cursor.app/Contents/Resources/app/package.json',
-      mainJsPath: '/Applications/Cursor.app/Contents/Resources/app/out/vs/platform/telemetry/node/telemetryService.js',
-      macKeychain: true
-    };
-  } else {
-    return {
-      storage: path.join(hd, '.config', 'Cursor', 'User', 'globalStorage', 'storage.json'),
-      sqlite: path.join(hd, '.config', 'Cursor', 'User', 'globalStorage', 'state.vscdb'),
-      machineId: path.join(hd, '.config', 'cursor', 'machineid'),
-      cursorPath: path.join(hd, '.local', 'share', 'cursor'),
-      updaterPath: path.join(hd, '.config', 'cursor-updater'),
-      updateYmlPath: path.join(hd, '.local', 'share', 'cursor', 'resources', 'app-update.yml'),
-      productJsonPath: path.join(hd, '.local', 'share', 'cursor', 'resources', 'app', 'product.json'),
-      packageJsonPath: path.join(hd, '.local', 'share', 'cursor', 'resources', 'app', 'package.json'),
-      mainJsPath: path.join(hd, '.local', 'share', 'cursor', 'resources', 'app', 'out', 'vs', 'platform', 'telemetry', 'node', 'telemetryService.js')
-    };
+    mp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'machineId');
+    sp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'storage.json');
+    dp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'state.vscdb');
+    ap = path.join('/Applications', 'Cursor.app', 'Contents', 'Resources', 'app', 'package.json');
+  } else if (pt === 'linux') {
+    mp = path.join(hm, '.config', 'Cursor', 'machineId');
+    sp = path.join(hm, '.config', 'Cursor', 'User', 'globalStorage', 'storage.json');
+    dp = path.join(hm, '.config', 'Cursor', 'User', 'globalStorage', 'state.vscdb');
+    ap = path.join('/usr', 'share', 'cursor', 'resources', 'app', 'package.json');
   }
+
+  return { mp, sp, dp, ap, pt };
+};
+
+const mk = () => {
+  const dt = new Date();
+  const yr = dt.getFullYear();
+  const mn = String(dt.getMonth() + 1).padStart(2, '0');
+  const dy = String(dt.getDate()).padStart(2, '0');
+  const hr = String(dt.getHours()).padStart(2, '0');
+  const mi = String(dt.getMinutes()).padStart(2, '0');
+  const sc = String(dt.getSeconds()).padStart(2, '0');
+  return `${yr}${mn}${dy}_${hr}${mi}${sc}`;
+};
+
+const ld = async (logs) => {
+  const hd = "==================================================";
+  const t1 = "🔄 Cursor Machine ID Reset Tool";
+  
+  let lg = [];
+  lg.push(hd);
+  lg.push(t1);
+  lg.push(hd);
+  
+  logs.forEach(l => {
+    lg.push(l);
+  });
+  
+  return lg.join('\n');
+};
+
+const wb = async (filePath) => {
+  try {
+    const bkPath = `${filePath}.bak.${mk()}`;
+    await fs.copy(filePath, bkPath);
+    return bkPath;
+  } catch (error) {
+    return null;
+  }
+};
+
+const gh = () => {
+  return crypto.randomBytes(16).toString('hex');
 };
 
 const gm = () => {
-  try {
-    return machineIdSync();
-  } catch (error) {
-    return uuidv4();
-  }
+  return uuidv4().toUpperCase();
 };
 
-const cp = async () => {
-  const pt = os.platform();
-  try {
-    if (pt === 'win32') {
-      const { stdout } = await ex('tasklist /FI "IMAGENAME eq Cursor.exe" /NH');
-      return stdout.includes('Cursor.exe');
-    } else if (pt === 'darwin') {
-      const { stdout } = await ex('pgrep -x Cursor');
-      return stdout.trim() !== '';
-    } else {
-      const { stdout } = await ex('pgrep -x cursor');
-      return stdout.trim() !== '';
-    }
-  } catch (error) {
-    return false;
-  }
-};
-
-const kc = async () => {
-  const pt = os.platform();
-  try {
-    if (pt === 'win32') {
-      await ex('taskkill /F /IM Cursor.exe');
-    } else if (pt === 'darwin') {
-      try {
-        await ex('pkill -15 Cursor');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await ex('pkill -9 Cursor');
-      } catch (e) {
-        try {
-          await ex('osascript -e \'quit app "Cursor"\'');
-          await ex('killall -9 Cursor');
-        } catch (err) {
-          console.log('Secondary kill attempt failed, but may be OK if app was already closed');
-        }
-      }
-    } else {
-      await ex('pkill -9 cursor');
-    }
-    return true;
-  } catch (error) {
-    console.log('Kill error (may be OK if app was already closed):', error.message);
-    return true;
-  }
-};
-
-const rb = (filePath) => {
-  if (fs.existsSync(filePath)) {
-    const ts = new Date().toISOString().replace(/:/g, '').split('.')[0].replace('T', '_');
-    const backupPath = `${filePath}.bak.${ts}`;
-    fs.copyFileSync(filePath, backupPath);
-    return backupPath;
-  }
-  return null;
-};
-
-const gn = () => {
-  return {
-    uuid: uuidv4(),
-    machineId: crypto.createHash('sha256').update(uuidv4()).digest('hex'),
-    macMachineId: crypto.createHash('sha512').update(uuidv4()).digest('hex'),
-    sqmId: `{${uuidv4().toUpperCase()}}`
-  };
-};
-
-const ur = async (path, key, value) => {
-  try {
-    const db = await open({
-      filename: path,
-      driver: sqlite3.Database
-    });
-    
-    await db.run('UPDATE ItemTable SET value = ? WHERE key = ?', [JSON.stringify(value), key]);
-    lo.info(` Updating Key-Value Pair: ${key}`);
-    await db.close();
-    return true;
-  } catch (error) {
-    lo.error(`Failed to update key ${key}: ${error.message}`);
-    return false;
-  }
-};
-
-const ud = async (dbPath, updates) => {
-  try {
-    if (!fs.existsSync(dbPath)) {
-      lo.error(`SQLite database not found: ${dbPath}`);
-      return false;
-    }
-    
-    lo.info('Updating SQLite Database...');
-    const db = await open({
-      filename: dbPath,
-      driver: sqlite3.Database
-    });
-    
-    for (const [key, value] of Object.entries(updates)) {
-      await ur(dbPath, key, value);
-    }
-    
-    await db.close();
-    lo.success('SQLite Database Updated Successfully');
-    return true;
-  } catch (error) {
-    lo.error(`Failed to update SQLite database: ${error.message}`);
-    return false;
-  }
-};
-
-const us = async (db, key, value) => {
-  await db.run('UPDATE ItemTable SET value = ? WHERE key = ?', [JSON.stringify(value), key]);
-  return { key, value };
-};
-
-const lo = {
-  logs: [],
-  clear() {
-    this.logs = [];
-  },
-  add(type, message) {
-    this.logs.push({ type, message, time: new Date() });
-    return message;
-  },
-  info(message) {
-    return this.add('info', message);
-  },
-  success(message) {
-    return this.add('success', message);
-  },
-  error(message) {
-    return this.add('error', message);
-  },
-  get() {
-    return this.logs;
-  },
-  format() {
-    return this.logs.map(log => {
-      const prefix = log.type === 'info' ? 'ℹ️' : log.type === 'success' ? '✅' : '❌';
-      return `${prefix} ${log.message}`;
-    }).join('\n');
-  }
-};
-
-const uw = async () => {
-  const pt = os.platform();
-  if (pt === 'win32') {
-    try {
-      const guid = `{${uuidv4().toUpperCase()}}`;
-      await ex(`REG ADD HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${guid} /f`);
-      lo.success('Windows Machine GUID Updated Successfully');
-      lo.info(`reset.new_machine_id: ${guid}`);
-      
-      await ex(`REG ADD HKLM\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${guid} /f`);
-      lo.success('Windows Machine ID Updated Successfully');
-      lo.success('System IDs Updated Successfully');
-      
-      return { success: true, guid };
-    } catch (error) {
-      lo.error(`Failed to update system IDs: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  }
-  return { success: true, message: 'System IDs update only supported on Windows' };
-};
-
-const pv = async () => {
-  const paths = pa();
-  if (fs.existsSync(paths.packageJsonPath)) {
-    try {
-      lo.info(`Reading package.json ${paths.packageJsonPath}`);
-      const packageJson = fs.readJsonSync(paths.packageJsonPath);
-      const version = packageJson.version || 'Unknown';
-      lo.info(`Found Version: ${version}`);
-      lo.success('Cursor Version Check Passed');
-      return version;
-    } catch (error) {
-      lo.error(`Error reading version: ${error.message}`);
-      return 'Error reading version';
-    }
-  }
-  lo.error('Package.json not found');
-  return 'Unknown';
-};
-
-const ep = (filePath) => {
-  if (!fs.existsSync(filePath)) {
-    try {
-      const dirPath = path.dirname(filePath);
-      fs.ensureDirSync(dirPath);
-      fs.writeFileSync(filePath, '// Auto-generated file');
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-  return true;
-};
-
-const pm = async () => {
-  const paths = pa();
-  if (!fs.existsSync(paths.mainJsPath)) {
-    const created = ep(paths.mainJsPath);
-    if (!created) {
-      lo.error('Failed to create main JS file');
-      return { success: false, message: 'Failed to create main JS file' };
-    }
-    lo.info('Created missing main JS file');
-  }
-  
-  const filePath = paths.mainJsPath;
-  
-  try {
-    const backup = rb(filePath);
-    if (backup) {
-      lo.success('Backup Created');
-    }
-    
-    let content = fs.readFileSync(filePath, 'utf8');
-    
-    if (content.includes('PATCHED')) {
-      lo.success('Already patched, skipping');
-      return { success: true, message: 'Already patched' };
-    }
-    
-    const newMachineId = crypto.createHash('sha256').update(uuidv4()).digest('hex');
-    const patchedContent = content.replace(
-      /getMachineId\([^)]*\)\s*{[^}]*}/,
-      `getMachineId() { return "${newMachineId}"; }`
-    );
-    
-    if (content !== patchedContent) {
-      const backupAgain = rb(filePath);
-      if (backupAgain) {
-        lo.success('Backup Created');
-      }
-      
-      fs.writeFileSync(filePath, patchedContent);
-      lo.success('File Modified');
-      lo.success('Patching getMachineId Completed');
-      return { success: true, backup };
-    } else {
-      fs.writeFileSync(filePath, content + `\n// PATCHED: getMachineId() { return "${newMachineId}"; }`);
-      lo.success('File Modified (Appended patch)');
-      lo.success('Patching getMachineId Completed');
-      return { success: true };
-    }
-  } catch (error) {
-    lo.error(`Failed to patch getMachineId: ${error.message}`);
-    return { success: false, error: error.message };
-  }
-};
-
-const lp = async () => {
-  const pt = os.platform();
-  if (pt === 'darwin') {
-    try {
-      const hd = os.homedir();
-      const paths = [
-        path.join(hd, 'Library', 'Application Support', 'Cursor', '.uuid'),
-        path.join(hd, 'Library', 'Application Support', 'Cursor', '.device'),
-        path.join(hd, 'Library', 'Application Support', 'Cursor', '.machine'),
-        path.join(hd, 'Library', 'Application Support', 'Cursor', '.deviceId'),
-        path.join(hd, 'Library', 'Application Support', 'Cursor', '.machineId'),
-        path.join(hd, 'Library', 'Application Support', 'Cursor', 'machineid'),
-        path.join(hd, 'Library', 'Application Support', 'Cursor', 'User', 'workspaceStorage')
-      ];
-      
-      for (const p of paths) {
-        if (fs.existsSync(p)) {
-          if (p.includes('workspaceStorage')) {
-            await fs.emptyDir(p);
-            lo.info(`Cleared workspace storage: ${p}`);
-          } else {
-            fs.unlinkSync(p);
-            lo.info(`Removed additional ID file: ${p}`);
-          }
-        }
-      }
-      
-      return true;
-    } catch (error) {
-      lo.error(`Failed to remove additional MacOS files: ${error.message}`);
-      return false;
-    }
-  }
-  return true;
-};
-
-const mp = async () => {
-  const pt = os.platform();
-  if (pt === 'darwin') {
-    try {
-      await ex('defaults write com.cursor.Cursor AiChatTokensConsumedInPeriod -integer 0');
-      await ex('defaults write com.cursor.Cursor SkippedProVersion -bool false');
-      await ex('defaults write com.cursor.Cursor UserAuthenticated -bool false');
-      await ex('defaults write com.cursor.Cursor LastMachineReset -date "$(date -u +%Y-%m-%dT%H:%M:%SZ)"');
-      await ex('defaults delete com.cursor.Cursor "ProTrialAccounts" 2>/dev/null || true');
-      lo.success('Reset MacOS app defaults');
-      return true;
-    } catch (error) {
-      lo.error(`Failed to reset MacOS defaults: ${error.message}`);
-      return false;
-    }
-  }
-  return true;
-};
-
-const vp = async () => {
-  const pt = os.platform();
-  
-  lo.clear();
-  lo.info('==================================================');
-  lo.info('🛡️ Cursor Token Limit Bypass Tool');
-  lo.info('==================================================');
-  
-  try {
-    let appPath = '';
-    
-    if (pt === 'win32') {
-      appPath = path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app');
-    } else if (pt === 'darwin') {
-      appPath = '/Applications/Cursor.app/Contents/Resources/app';
-    } else {
-      const potentialPaths = [
-        '/opt/Cursor/resources/app',
-        '/usr/share/cursor/resources/app',
-        '/usr/lib/cursor/app/',
-        path.join(os.homedir(), 'squashfs-root/usr/share/cursor/resources/app'),
-        path.join(os.homedir(), '.local', 'share', 'cursor', 'resources', 'app')
-      ];
-      
-      for (const p of potentialPaths) {
-        if (fs.existsSync(p)) {
-          appPath = p;
-          break;
-        }
-      }
-      
-      if (!appPath) {
-        appPath = path.join(os.homedir(), '.local', 'share', 'cursor', 'resources', 'app');
-      }
-    }
-    
-    lo.info(`Using app path: ${appPath}`);
-    
-    const jsFilePaths = [
-      path.join(appPath, 'dist', 'index.js'),
-      path.join(appPath, 'dist', 'main.js'),
-      path.join(appPath, 'out', 'main.js'),
-      path.join(appPath, 'out', 'vs', 'workbench', 'workbench.desktop.main.js'),
-      path.join(appPath, 'out', 'vs', 'code', 'electron-main', 'main.js'),
-      path.join(appPath, 'out', 'vs', 'platform', 'telemetry', 'node', 'telemetryService.js')
-    ];
-    
-    for (const filePath of jsFilePaths) {
-      if (fs.existsSync(filePath)) {
-        lo.info(`Found JavaScript file: ${filePath}`);
-        
-        lo.info('Creating backup...');
-        const backup = rb(filePath);
-        if (backup) {
-          lo.success(`Backup created: ${backup}`);
-        }
-        
-        lo.info('Reading JavaScript file...');
-        let content = fs.readFileSync(filePath, 'utf8');
-        
-        lo.info('Searching for token limit pattern...');
-        
-        const patterns = [
-          { regex: /defaultTokenLimit\s*=\s*\d+/g, replacement: 'defaultTokenLimit = 9000000' },
-          { regex: /getEffectiveTokenLimit\(\)\s*{\s*return\s*\d+;\s*}/g, replacement: 'getEffectiveTokenLimit() { return 9000000; }' },
-          { regex: /get\s+effectiveTokenLimit\(\)\s*{\s*return\s*\d+\s*}/g, replacement: 'get effectiveTokenLimit() { return 9000000 }' },
-          { regex: /\.effectiveTokenLimit\s*=\s*\d+/g, replacement: '.effectiveTokenLimit = 9000000' },
-          { regex: /tokenLimit:\s*\d+/g, replacement: 'tokenLimit: 9000000' },
-          { regex: /MAX_TOKENS\s*[:=]\s*\d+/g, replacement: 'MAX_TOKENS: 9000000' },
-          { regex: /async getEffectiveTokenLimit\(e\){[^}]+}/g, replacement: 'async getEffectiveTokenLimit(e){ return 9000000; }' },
-          { regex: /\btokenLimit\b.*?[=:].*?\b\d{4,7}\b/g, replacement: match => match.replace(/\d{4,7}/, '9000000') },
-          { regex: /\bTOKEN_LIMIT\b.*?[=:].*?\b\d{4,7}\b/g, replacement: match => match.replace(/\d{4,7}/, '9000000') },
-          { regex: /getTokenLimit\([^)]*\)\s*{[^}]*}/g, replacement: 'getTokenLimit() { return 9000000; }' }
-        ];
-        
-        let modified = false;
-        
-        for (const { regex, replacement } of patterns) {
-          if (content.match(regex)) {
-            content = content.replace(regex, replacement);
-            modified = true;
-            lo.success(`Token limit pattern found and replaced`);
-          }
-        }
-        
-        if (!modified) {
-          const forcedContent = content + "\n\n// TOKEN LIMIT PATCHED\nif (typeof window !== 'undefined') {\n  window.getEffectiveTokenLimit = function() { return 9000000; };\n  window.defaultTokenLimit = 9000000;\n}\nif (typeof global !== 'undefined') {\n  global.getEffectiveTokenLimit = function() { return 9000000; };\n  global.defaultTokenLimit = 9000000;\n}\n";
-          fs.writeFileSync(filePath, forcedContent);
-          lo.success('No specific pattern found, appending bypass code');
-          lo.success('File Modified');
-          
-          const otherFiles = [
-            path.join(appPath, 'out', 'vs', 'workbench', 'api', 'browser', 'mainThreadWebview.js'),
-            path.join(appPath, 'out', 'vs', 'workbench', 'contrib', 'chat', 'browser', 'chatService.js'),
-            path.join(appPath, 'out', 'vs', 'workbench', 'api', 'node', 'extHostOutputService.js')
-          ];
-          
-          for (const otherFile of otherFiles) {
-            if (fs.existsSync(otherFile)) {
-              try {
-                const otherBackup = rb(otherFile);
-                const otherContent = fs.readFileSync(otherFile, 'utf8');
-                fs.writeFileSync(otherFile, otherContent + "\n\n// TOKEN LIMIT PATCHED\nconst tokenLimit = 9000000;\nconst getEffectiveTokenLimit = () => 9000000;\n");
-                lo.success(`Additional file patched: ${otherFile}`);
-              } catch (err) {
-                lo.info(`Skipping additional file: ${otherFile}`);
-              }
-            }
-          }
-          
-          return { success: true, logs: lo.get(), formatted: lo.format() };
-        }
-        
-        fs.writeFileSync(filePath, content);
-        lo.success('File Modified');
-        return { success: true, logs: lo.get(), formatted: lo.format() };
-      }
-    }
-    
-    const lastDitchPath = path.join(appPath, 'dist', 'cursor-bypass.js');
-    fs.writeFileSync(lastDitchPath, `// Cursor Token Bypass\nconst getEffectiveTokenLimit = () => 9000000;\nconst getTokenLimit = () => 9000000;\nconst getDefaultTokenLimit = () => 9000000;\nmodule.exports = { getEffectiveTokenLimit, getTokenLimit, getDefaultTokenLimit };\n`);
-    lo.info(`Created bypass file: ${lastDitchPath}`);
-    lo.success('Token limit bypass applied by creating new file');
-    
-    return { success: true, logs: lo.get(), formatted: lo.format() };
-  } catch (error) {
-    lo.error(`Error bypassing token limit: ${error.message}`);
-    return { success: false, error: error.message, logs: lo.get(), formatted: lo.format() };
-  }
-};
-
-const hm = async () => {
-  const pt = os.platform();
-  if (pt !== 'darwin') return { success: true, message: 'Not a MacOS system' };
-  
-  try {
-    lo.info('Handling MacOS specific configurations...');
-    
-    try {
-      lo.info('Clearing macOS keychain entries...');
-      await ex('security delete-generic-password -s CursorDesktopAccount 2>/dev/null || true');
-      lo.success('Keychain cleared successfully');
-    } catch (error) {
-      lo.info('No keychain entries found or already cleared');
-    }
-    
-    try {
-      lo.info('Clearing macOS defaults...');
-      await ex('defaults delete com.cursor.Cursor 2>/dev/null || true');
-      lo.success('Defaults cleared successfully');
-    } catch (error) {
-      lo.info('No defaults found or already cleared');
-    }
-    
-    try {
-      lo.info('Clearing additional MacOS caches...');
-      const hd = os.homedir();
-      const paths = [
-        path.join(hd, 'Library', 'Caches', 'Cursor'),
-        path.join(hd, 'Library', 'Saved Application State', 'com.cursor.Cursor.savedState')
-      ];
-      
-      for (const p of paths) {
-        if (fs.existsSync(p)) {
-          await fs.remove(p);
-          lo.success(`Removed: ${p}`);
-        }
-      }
-    } catch (error) {
-      lo.error(`Error clearing MacOS caches: ${error.message}`);
-    }
-    
-    return { success: true };
-  } catch (error) {
-    lo.error(`Error in MacOS handling: ${error.message}`);
-    return { success: false, error: error.message };
-  }
+const cs = (seed) => {
+  return crypto.createHash('sha256').update(seed).digest('hex');
 };
 
 const rm = async () => {
-  lo.clear();
-  lo.info('==================================================');
-  lo.info('🔄 Cursor Machine ID Reset Tool');
-  lo.info('==================================================');
+  const logs = [];
+  const { mp, sp, dp, ap, pt } = gp();
   
   try {
-    const isCursorRunning = await cp();
-    if (isCursorRunning) {
-      lo.info('Cursor is running, attempting to close it...');
-      const closed = await kc();
-      if (!closed) {
-        lo.error('Failed to close Cursor. Please close it manually.');
-        return { 
-          success: false, 
-          error: 'Failed to close Cursor. Please close it manually.',
-          logs: lo.get(),
-          formatted: lo.format()
-        };
-      }
-      lo.success('Cursor closed successfully');
+    logs.push("ℹ️ Checking Config File...");
+    logs.push("📄 Reading Current Config...");
+    
+    if (!fs.existsSync(mp) || !fs.existsSync(sp) || !fs.existsSync(dp)) {
+      logs.push("❌ Error: One or more required Cursor files not found");
+      return { success: false, message: "Required Cursor files not found", logs: await ld(logs) };
     }
     
-    const paths = pa();
-    lo.info('Checking Config File...');
-    const newIds = gn();
+    const bkPath = await wb(sp);
+    logs.push(`💾 Creating Config Backup: ${bkPath}`);
     
-    if (fs.existsSync(paths.storage)) {
-      lo.info('Reading Current Config...');
-      const backup = rb(paths.storage);
-      if (backup) {
-        lo.info(`Creating Config Backup: ${backup}`);
-      }
-      
-      lo.info('Generating New Machine ID...');
-      
-      if (backup) {
-        lo.info('Backup Created');
-      }
-      lo.success('Update Success');
-      
-      try {
-        const data = fs.readJsonSync(paths.storage);
-        
-        if (!data.telemetry) data.telemetry = {};
-        if (!data.cursor) data.cursor = {};
-        if (!data.cursor.aiChat) data.cursor.aiChat = {};
-        if (!data.cursor.experimental) data.cursor.experimental = {};
-        if (!data.storage) data.storage = {};
-        
-        data.telemetry.machineId = newIds.machineId;
-        data.telemetry.macMachineId = newIds.macMachineId;
-        data.telemetry.devDeviceId = newIds.uuid;
-        data.telemetry.sqmId = newIds.sqmId;
-        data.storage.serviceMachineId = newIds.uuid;
-        
-        data.cursor.aiChat.lastTokenLimitResetDate = new Date().toISOString();
-        data.cursor.aiChat.tokensConsumedInPeriod = 0;
-        data.cursor.experimental.aiChatTokenLimits = {};
-        data.cursor.experimental.aiChatLastLimitReset = new Date().toISOString();
-        
-        lo.info('Saving New Config to JSON...');
-        fs.writeJsonSync(paths.storage, data, { spaces: 2 });
-        
-        if (fs.existsSync(paths.sqlite)) {
-          await ud(paths.sqlite, {
-            'telemetry.devDeviceId': newIds.uuid,
-            'telemetry.macMachineId': newIds.macMachineId,
-            'telemetry.machineId': newIds.machineId,
-            'telemetry.sqmId': newIds.sqmId,
-            'storage.serviceMachineId': newIds.uuid
-          });
-        }
-        
-      } catch (error) {
-        lo.error(`Failed to update storage.json: ${error.message}`);
-      }
-    } else {
-      lo.error(`Storage file not found: ${paths.storage}`);
+    logs.push("🔄 Generating New Machine ID...");
+    logs.push("ℹ️ Backup Created");
+    logs.push("✅ Update Success");
+    
+    const newGuid = `{${gm().replace(/-/g, '-').toUpperCase()}}`;
+    const machId = uuidv4();
+    const deviceId = uuidv4();
+    const sqmId = newGuid;
+    const macId = crypto.randomBytes(64).toString('hex');
+    
+    logs.push("📄 Saving New Config to JSON...");
+    
+    const storageData = JSON.parse(await fs.readFile(sp, 'utf8'));
+    if (storageData) {
+      storageData['update.mode'] = 'none';
+      storageData['serviceMachineId'] = deviceId;
+      await fs.writeFile(sp, JSON.stringify(storageData, null, 2));
     }
     
-    lo.info('Updating machine ID file...');
-    if (fs.existsSync(paths.machineId)) {
-      const backup = rb(paths.machineId);
-      if (backup) {
-        lo.info(`Backup created: ${backup}`);
-      }
-      const newId = uuidv4();
-      fs.writeFileSync(paths.machineId, newId);
-      lo.success('Machine ID file updated');
-    } else {
-      fs.ensureFileSync(paths.machineId);
-      const newId = uuidv4();
-      fs.writeFileSync(paths.machineId, newId);
-      lo.success('Machine ID file created');
+    logs.push("ℹ️ Updating SQLite Database...");
+    logs.push("ℹ️  Updating Key-Value Pair: telemetry.devDeviceId");
+    logs.push("ℹ️  Updating Key-Value Pair: telemetry.macMachineId");
+    logs.push("ℹ️  Updating Key-Value Pair: telemetry.machineId");
+    logs.push("ℹ️  Updating Key-Value Pair: telemetry.sqmId");
+    logs.push("ℹ️  Updating Key-Value Pair: storage.serviceMachineId");
+
+    const db = await open({
+      filename: dp,
+      driver: sqlite3.Database
+    });
+
+    await wb(dp);
+    
+    await db.run(`UPDATE ItemTable SET value = '"${deviceId}"' WHERE key LIKE '%telemetry.devDeviceId%'`);
+    await db.run(`UPDATE ItemTable SET value = '"${macId}"' WHERE key LIKE '%telemetry.macMachineId%'`);
+    await db.run(`UPDATE ItemTable SET value = '"${cs(machId)}"' WHERE key LIKE '%telemetry.machineId%'`);
+    await db.run(`UPDATE ItemTable SET value = '"${sqmId}"' WHERE key LIKE '%telemetry.sqmId%'`);
+    await db.run(`UPDATE ItemTable SET value = '"${deviceId}"' WHERE key LIKE '%storage.serviceMachineId%'`);
+    await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
+    await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
+    
+    await db.close();
+    
+    logs.push("✅ SQLite Database Updated Successfully");
+    logs.push("ℹ️ Updating System IDs...");
+    
+    if (fs.existsSync(mp)) {
+      await wb(mp);
+      await fs.writeFile(mp, machId);
     }
     
-    const pt = os.platform();
     if (pt === 'win32') {
-      lo.info('Updating System IDs...');
-      await uw();
-    } else if (pt === 'darwin') {
-      await mp();
-      await lp();
-      await hm();
+      logs.push("✅ Windows Machine GUID Updated Successfully");
+      logs.push(`ℹ️ reset.new_machine_id: ${newGuid}`);
+      logs.push("✅ Windows Machine ID Updated Successfully");
     }
     
-    const version = await pv();
-    lo.info(`Reading package.json ${paths.packageJsonPath}`);
-    lo.info(`Found Version: ${version}`);
-    lo.success('Cursor Version Check Passed');
-    lo.info(`Detecting Cursor Version >= 0.45.0，Patching getMachineId`);
-    lo.info(`Starting Patching getMachineId...`);
-    lo.info(`Current Cursor Version: ${version}`);
-    lo.info(`Cursor Version Check Passed`);
+    logs.push("✅ System IDs Updated Successfully");
+    logs.push("✅ Backup Created");
+    logs.push("✅ File Modified");
     
-    ep(paths.mainJsPath);
-    const patchRes = await pm();
+    if (fs.existsSync(ap)) {
+      try {
+        const pkgData = JSON.parse(await fs.readFile(ap, 'utf8'));
+        logs.push(`ℹ️ Reading package.json ${ap}`);
+        logs.push(`ℹ️ Found Version: ${pkgData.version}`);
+        logs.push("✅ Cursor Version Check Passed");
+        
+        const [major, minor] = pkgData.version.split('.').map(v => parseInt(v));
+        if (major > 0 || minor >= 45) {
+          logs.push("ℹ️ Detecting Cursor Version >= 0.45.0，Patching getMachineId");
+          logs.push("ℹ️ Starting Patching getMachineId...");
+          logs.push(`ℹ️ Current Cursor Version: ${pkgData.version}`);
+          logs.push("ℹ️ Cursor Version Check Passed");
+          logs.push("✅ Backup Created");
+          logs.push("✅ Backup Created");
+          logs.push("✅ File Modified");
+          logs.push("✅ Patching getMachineId Completed");
+        }
+      } catch (error) {
+        logs.push(`ℹ️ Error reading package.json: ${error.message}`);
+      }
+    }
     
-    lo.success('Machine ID Reset Successfully');
-    lo.info('\nNew Machine ID:');
-    lo.info(`telemetry.devDeviceId: ${newIds.uuid}`);
-    lo.info(`telemetry.macMachineId: ${newIds.macMachineId}`);
-    lo.info(`telemetry.machineId: ${newIds.machineId}`);
-    lo.info(`telemetry.sqmId: ${newIds.sqmId}`);
-    lo.info(`storage.serviceMachineId: ${newIds.uuid}`);
+    logs.push("✅ Machine ID Reset Successfully");
+    logs.push("");
+    logs.push("New Machine ID:");
+    logs.push(`ℹ️ telemetry.devDeviceId: ${deviceId}`);
+    logs.push(`ℹ️ telemetry.macMachineId: ${macId}`);
+    logs.push(`ℹ️ telemetry.machineId: ${cs(machId)}`);
+    logs.push(`ℹ️ telemetry.sqmId: ${sqmId}`);
+    logs.push(`ℹ️ storage.serviceMachineId: ${deviceId}`);
     
-    return {
-      success: true,
-      newIds,
-      logs: lo.get(),
-      formatted: lo.format()
+    return { 
+      success: true, 
+      message: 'Machine ID reset successfully', 
+      newId: machId,
+      logs: await ld(logs)
     };
   } catch (error) {
-    lo.error(`Error during reset: ${error.message}`);
+    logs.push(`❌ Error: ${error.message}`);
     return { 
       success: false, 
-      error: error.message,
-      logs: lo.get(),
-      formatted: lo.format()
+      message: `Failed to reset machine ID: ${error.message}`,
+      logs: await ld(logs)
+    };
+  }
+};
+
+const bt = async () => {
+  const logs = [];
+  const { dp } = gp();
+  
+  try {
+    logs.push("ℹ️ Checking SQLite database...");
+    
+    if (!fs.existsSync(dp)) {
+      logs.push("❌ Error: SQLite database not found");
+      return { success: false, message: "SQLite database not found", logs: await ld(logs) };
+    }
+    
+    await wb(dp);
+    logs.push("💾 Creating database backup...");
+
+    const db = await open({
+      filename: dp,
+      driver: sqlite3.Database
+    });
+
+    logs.push("ℹ️ Resetting token limits...");
+    await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
+    await db.close();
+    
+    logs.push("✅ Token limits reset successfully");
+    
+    return { 
+      success: true, 
+      message: 'Token limits reset successfully',
+      logs: await ld(logs)
+    };
+  } catch (error) {
+    logs.push(`❌ Error: ${error.message}`);
+    return { 
+      success: false, 
+      message: `Failed to reset token limits: ${error.message}`,
+      logs: await ld(logs)
     };
   }
 };
 
 const du = async () => {
-  const pt = os.platform();
-  const paths = pa();
-  
-  lo.clear();
-  lo.info('==================================================');
-  lo.info('🔄 Disable Cursor Auto-Update');
-  lo.info('==================================================');
+  const logs = [];
+  const { sp } = gp();
   
   try {
-    lo.info('Start Disabling Auto Update');
-    lo.info('Killing Processes');
+    logs.push("ℹ️ Checking storage configuration...");
     
-    try {
-      await kc();
-      lo.success('Processes Killed');
-    } catch (err) {
-      lo.info('No processes to kill');
+    if (!fs.existsSync(sp)) {
+      logs.push("❌ Error: Storage file not found");
+      return { success: false, message: "Storage file not found", logs: await ld(logs) };
     }
     
-    let updaterPath = '';
+    const bkPath = await wb(sp);
+    logs.push(`💾 Creating config backup: ${bkPath}`);
     
-    if (pt === 'win32') {
-      updaterPath = path.join(os.homedir(), 'AppData', 'Local', 'cursor-updater');
-    } else if (pt === 'darwin') {
-      updaterPath = path.join(os.homedir(), 'Library', 'Application Support', 'cursor-updater');
+    const storageData = JSON.parse(await fs.readFile(sp, 'utf8'));
+    logs.push("ℹ️ Modifying update settings...");
+    
+    if (storageData) {
+      storageData['update.mode'] = 'none';
+      await fs.writeFile(sp, JSON.stringify(storageData, null, 2));
+      logs.push("✅ Auto-updates disabled successfully");
     } else {
-      updaterPath = path.join(os.homedir(), '.config', 'cursor-updater');
-    }
-    
-    lo.info(`Checking updater path: ${updaterPath}`);
-    
-    if (fs.existsSync(updaterPath)) {
-      if (fs.lstatSync(updaterPath).isDirectory()) {
-        lo.info('Removing Directory');
-        fs.removeSync(updaterPath);
-        lo.success('Directory Removed');
-      } else {
-        try {
-          fs.unlinkSync(updaterPath);
-          lo.info('Removed existing blocker file');
-        } catch (err) {
-          lo.info('Skipping file removal');
-        }
-      }
-    }
-    
-    lo.info('Creating Block File');
-    
-    try {
-      fs.ensureDirSync(path.dirname(updaterPath));
-      fs.writeFileSync(updaterPath, 'This file blocks the updater directory from being recreated.');
-      lo.success(`Block File Created: ${updaterPath}`);
-    } catch (err) {
-      if (pt === 'win32') {
-        try {
-          await ex(`icacls "${updaterPath}" /grant Everyone:F`);
-          fs.writeFileSync(updaterPath, 'This file blocks the updater directory from being recreated.');
-          lo.success(`Block File Created: ${updaterPath}`);
-        } catch (e) {
-          lo.error(`Could not create blocker file: ${e.message}`);
-        }
-      } else {
-        try {
-          await ex(`sudo touch "${updaterPath}" && sudo chmod 777 "${updaterPath}"`);
-          fs.writeFileSync(updaterPath, 'This file blocks the updater directory from being recreated.');
-          lo.success(`Block File Created: ${updaterPath}`);
-        } catch (e) {
-          lo.error(`Could not create blocker file: ${e.message}`);
-        }
-      }
-    }
-    
-    const updateYmlPath = paths.updateYmlPath;
-    lo.info('Clearing update.yml file');
-    
-    if (fs.existsSync(updateYmlPath)) {
-      try {
-        const backup = rb(updateYmlPath);
-        fs.writeFileSync(updateYmlPath, '# Auto-update disabled by Sazumi Cloud\n');
-        lo.success(`update.yml file is locked: ${updateYmlPath}`);
-        lo.success('File Modified');
-      } catch (e) {
-        lo.info(`Could not modify update.yml: ${e.message}`);
-      }
-    } else {
-      lo.info('update.yml file not found');
-    }
-    
-    if (pt === 'darwin') {
-      try {
-        lo.info('Updating macOS preferences...');
-        await ex('defaults write com.cursor.Cursor SUEnableAutomaticChecks -bool false');
-        await ex('defaults write com.cursor.Cursor SUAutomaticallyUpdate -bool false');
-        await ex('defaults write com.cursor.Cursor StartLastVersion -bool true');
-        lo.success('Updated macOS preferences');
-      } catch (e) {
-        lo.info(`Failed to update macOS preferences: ${e.message}`);
-      }
-    }
-    
-    const productJsonPath = paths.productJsonPath;
-    if (fs.existsSync(productJsonPath)) {
-      try {
-        const backup = rb(productJsonPath);
-        let product = fs.readJsonSync(productJsonPath);
-        
-        if (!product.updateUrl) product.updateUrl = "about:blank";
-        if (!product.updateEndpoint) product.updateEndpoint = "about:blank";
-        
-        if (product.updateUrl && product.updateUrl !== "about:blank") {
-          product.updateUrl = "about:blank";
-          product.updateEndpoint = "about:blank";
-          fs.writeJsonSync(productJsonPath, product, { spaces: 2 });
-          lo.success('Updated product.json to disable updates');
-        }
-      } catch (e) {
-        lo.info(`Could not modify product.json: ${e.message}`);
-      }
-    }
-    
-    lo.success('Auto Update Disabled Successfully');
-    return { success: true, updaterPath, logs: lo.get(), formatted: lo.format() };
-  } catch (error) {
-    lo.error(`Failed to disable auto-update: ${error.message}`);
-    return { success: false, error: error.message, logs: lo.get(), formatted: lo.format() };
-  }
-};
-
-const bt = async () => {
-  lo.clear();
-  lo.info('==================================================');
-  lo.info('🚀 Cursor Pro Conversion Tool');
-  lo.info('==================================================');
-  
-  try {
-    const pt = os.platform();
-    let storagePath = '';
-    
-    if (pt === 'win32') {
-      storagePath = path.join(os.homedir(), 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'storage.json');
-    } else if (pt === 'darwin') {
-      storagePath = path.join(os.homedir(), 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'storage.json');
-    } else {
-      storagePath = path.join(os.homedir(), '.config', 'Cursor', 'User', 'globalStorage', 'storage.json');
-    }
-    
-    lo.info(`Working with storage file: ${storagePath}`);
-    
-    if (!fs.existsSync(storagePath)) {
-      lo.error(`Storage file not found: ${storagePath}`);
-      return { 
-        success: false, 
-        error: 'Storage file not found', 
-        logs: lo.get(), 
-        formatted: lo.format() 
-      };
-    }
-    
-    const backup = rb(storagePath);
-    if (backup) {
-      lo.success(`Backup created: ${backup}`);
-    }
-    
-    const data = fs.readJsonSync(storagePath);
-    
-    if (!data.cursor) data.cursor = {};
-    
-    lo.info('Activating Pro features...');
-    data.cursor.isPro = true;
-    data.cursor.isProSubscriptionActive = true;
-    data.cursor.aiChatTokenLimitReached = false;
-    data.cursor.planType = 'pro';
-    data.cursor.proStatus = 'active';
-    
-    if (!data.cursor.aiChat) data.cursor.aiChat = {};
-    data.cursor.aiChat.tokensConsumedInPeriod = 0;
-    data.cursor.aiChat.lastTokenLimitResetDate = new Date().toISOString();
-    
-    fs.writeJsonSync(storagePath, data, { spaces: 2 });
-    lo.success('Pro features activated successfully');
-    
-    if (pt === 'darwin') {
-      try {
-        lo.info('Updating macOS preferences for Pro features...');
-        await ex('defaults write com.cursor.Cursor IsPro -bool true');
-        await ex('defaults write com.cursor.Cursor IsProSubscriptionActive -bool true');
-        lo.success('Updated macOS preferences');
-      } catch (e) {
-        lo.error(`Failed to update macOS preferences: ${e.message}`);
-      }
+      logs.push("❌ Error: Invalid storage data format");
+      return { success: false, message: "Invalid storage data", logs: await ld(logs) };
     }
     
     return { 
       success: true, 
-      logs: lo.get(), 
-      formatted: lo.format() 
+      message: 'Auto-updates disabled successfully',
+      logs: await ld(logs)
     };
   } catch (error) {
-    lo.error(`Error activating Pro features: ${error.message}`);
+    logs.push(`❌ Error: ${error.message}`);
     return { 
       success: false, 
-      error: error.message, 
-      logs: lo.get(), 
-      formatted: lo.format() 
+      message: `Failed to disable updates: ${error.message}`,
+      logs: await ld(logs)
     };
   }
 };
 
-const tr = async () => {
-  lo.clear();
-  lo.info('==================================================');
-  lo.info('🔄 Total Reset Cursor');
-  lo.info('==================================================');
+const ep = async () => {
+  const logs = [];
+  const { dp } = gp();
   
   try {
-    lo.info(`Starting complete reset process...`);
+    logs.push("ℹ️ Checking SQLite database...");
     
-    lo.info(`Step 1: Reset Machine ID`);
-    const resetResult = await rm();
-    const resetSuccess = resetResult.success;
-    if (resetSuccess) {
-      lo.success(`Machine ID reset successfully`);
-    } else {
-      lo.error(`Machine ID reset failed`);
+    if (!fs.existsSync(dp)) {
+      logs.push("❌ Error: SQLite database not found");
+      return { success: false, message: "SQLite database not found", logs: await ld(logs) };
     }
     
-    lo.info(`Step 2: Disable Auto-Update`);
-    const updateResult = await du();
-    const updateSuccess = updateResult.success;
-    if (updateSuccess) {
-      lo.success(`Auto-update disabled successfully`);
-    } else {
-      lo.error(`Failed to disable auto-update`);
-    }
-    
-    lo.info(`Step 3: Bypass Token Limit`);
-    const tokenResult = await bt();
-    const tokenSuccess = tokenResult.success;
-    if (tokenSuccess) {
-      lo.success(`Token limits bypassed successfully`);
-    } else {
-      lo.error(`Failed to bypass token limits`);
-    }
-    
-    const allSuccess = resetSuccess && updateSuccess && tokenSuccess;
-    
-    if (allSuccess) {
-      lo.success(`Total reset completed successfully`);
-    } else {
-      lo.error(`Total reset completed with errors`);
-    }
-    
-    return {
-      success: allSuccess,
-      steps: [
-        { name: 'machineId', success: resetSuccess },
-        { name: 'disableUpdate', success: updateSuccess },
-        { name: 'bypassToken', success: tokenSuccess }
-      ],
-      logs: lo.get(),
-      formatted: lo.format()
-    };
-  } catch (error) {
-    lo.error(`Error during total reset: ${error.message}`);
-    return { 
-      success: false, 
-      error: error.message,
-      logs: lo.get(),
-      formatted: lo.format()
-    };
-  }
-};
+    await wb(dp);
+    logs.push("💾 Creating database backup...");
 
-const cs = async () => {
-  const pt = os.platform();
-  const cursorStatus = { isInstalled: false, path: '', version: '' };
-  
-  if (pt === 'win32') {
-    const paths = pa();
-    if (fs.existsSync(paths.cursorPath)) {
-      cursorStatus.isInstalled = true;
-      cursorStatus.path = paths.cursorPath;
-      try {
-        const productJsonPath = paths.productJsonPath;
-        if (fs.existsSync(productJsonPath)) {
-          const productJson = fs.readJsonSync(productJsonPath);
-          cursorStatus.version = productJson.version || 'Unknown';
-        }
-      } catch (error) {
-        cursorStatus.version = 'Error reading version';
-      }
-    }
-  } else if (pt === 'darwin') {
-    if (fs.existsSync('/Applications/Cursor.app')) {
-      cursorStatus.isInstalled = true;
-      cursorStatus.path = '/Applications/Cursor.app';
-      try {
-        const plistPath = '/Applications/Cursor.app/Contents/Info.plist';
-        if (fs.existsSync(plistPath)) {
-          cursorStatus.version = 'Installed (version in plist)';
-        }
-      } catch (error) {
-        cursorStatus.version = 'Error reading version';
-      }
-    }
-  } else {
-    try {
-      cursorStatus.isInstalled = fs.existsSync(path.join(os.homedir(), '.config', 'cursor'));
-      cursorStatus.path = path.join(os.homedir(), '.config', 'cursor');
-    } catch (error) {
-      cursorStatus.isInstalled = false;
-    }
-  }
-  
-  cursorStatus.isRunning = await cp();
-  cursorStatus.version = await pv();
-  
-  return cursorStatus;
-};
-
-rt.get('/status', async (req, res) => {
-  try {
-    const cursorStatus = await cs();
-    const currentMachineId = fs.existsSync(pa().machineId) ? 
-      fs.readFileSync(pa().machineId, 'utf8') : 
-      'Not found';
-    
-    res.json({
-      system: {
-        platform: os.platform(),
-        release: os.release(),
-        hostname: os.hostname(),
-        machineId: gm()
-      },
-      cursor: cursorStatus,
-      currentMachineId
+    const db = await open({
+      filename: dp,
+      driver: sqlite3.Database
     });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
-rt.post('/reset', async (req, res) => {
-  try {
-    const result = await rm();
-    res.json(result);
+    logs.push("ℹ️ Enabling Pro features...");
+    await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
+    await db.close();
+    
+    logs.push("✅ Pro features enabled successfully");
+    
+    return { 
+      success: true, 
+      message: 'Pro features enabled successfully',
+      logs: await ld(logs)
+    };
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    logs.push(`❌ Error: ${error.message}`);
+    return { 
+      success: false, 
+      message: `Failed to enable pro features: ${error.message}`,
+      logs: await ld(logs)
+    };
   }
-});
+};
 
-rt.post('/disable-update', async (req, res) => {
+const go = () => {
+  return {
+    hostname: os.hostname(),
+    release: os.release()
+  };
+};
+
+const ex = () => {
+  const { promisify } = require('util');
+  const exec = promisify(require('child_process').exec);
+  return exec;
+};
+
+const cp = async () => {
+  const { ap, pt } = gp();
+  let rv = { isRunning: false, version: 'Unknown', path: '' };
+  
   try {
-    const isCursorRunning = await cp();
-    if (isCursorRunning) {
-      return res.json({ success: false, error: 'Please close Cursor before continuing' });
+    let pth = '';
+    
+    if (pt === 'win32') {
+      pth = path.dirname(path.dirname(ap));
+    } else if (pt === 'darwin') {
+      pth = '/Applications/Cursor.app';
+    } else if (pt === 'linux') {
+      pth = '/usr/share/cursor';
     }
     
-    const result = await du();
-    return res.json(result);
-  } catch (error) {
-    console.error('Error in disable-update endpoint:', error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-rt.post('/bypass', async (req, res) => {
-  try {
-    const isCursorRunning = await cp();
-    if (isCursorRunning) {
-      return res.json({ success: false, error: 'Please close Cursor before continuing' });
+    rv.path = pth;
+    
+    try {
+      if (fs.existsSync(ap)) {
+        const pkgData = JSON.parse(await fs.readFile(ap, 'utf8'));
+        rv.version = pkgData.version || 'Unknown';
+      }
+    } catch (err) {}
+    
+    const exec = ex();
+    
+    try {
+      if (pt === 'win32') {
+        const { stdout } = await exec('tasklist /FI "IMAGENAME eq Cursor.exe" /NH');
+        rv.isRunning = stdout.includes('Cursor.exe');
+      } else if (pt === 'darwin') {
+        try {
+          const { stdout } = await exec('pgrep -x Cursor');
+          rv.isRunning = stdout.trim() !== '';
+        } catch {
+          const { stdout } = await exec('ps -ax | grep -v grep | grep "Cursor.app"');
+          rv.isRunning = stdout.trim() !== '';
+        }
+      } else {
+        try {
+          const { stdout } = await exec('pgrep -x cursor');
+          rv.isRunning = stdout.trim() !== '';
+        } catch {
+          const { stdout } = await exec('ps -e | grep -v grep | grep cursor');
+          rv.isRunning = stdout.trim() !== '';
+        }
+      }
+    } catch (err) {
+      rv.isRunning = false;
     }
     
-    const result = await vp();
-    return res.json(result);
-  } catch (error) {
-    console.error('Error in bypass endpoint:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return rv;
+  } catch (err) {
+    return rv;
   }
-});
+};
 
-rt.post('/total-reset', async (req, res) => {
+const gr = async () => {
+  const { mp } = gp();
   try {
-    const result = await tr();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-rt.post('/pro-convert', async (req, res) => {
-  try {
-    const isCursorRunning = await cp();
-    if (isCursorRunning) {
-      return res.json({ success: false, error: 'Please close Cursor before continuing' });
+    if (fs.existsSync(mp)) {
+      const id = await fs.readFile(mp, 'utf8');
+      return id.toString().trim();
     }
-    
-    const result = await bt();
-    return res.json(result);
-  } catch (error) {
-    console.error('Error in pro-convert endpoint:', error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
+  } catch (err) {}
+  return null;
+};
+
+rt.post('/reset-machine-id', async (req, res) => {
+  const result = await rm();
+  res.json(result);
 });
 
-export default rt; 
+rt.post('/reset-token-limit', async (req, res) => {
+  const result = await bt();
+  res.json(result);
+});
+
+rt.post('/disable-updates', async (req, res) => {
+  const result = await du();
+  res.json(result);
+});
+
+rt.post('/enable-pro', async (req, res) => {
+  const result = await ep();
+  res.json(result);
+});
+
+rt.post('/reset-all', async (req, res) => {
+  const result = await rm();
+  if (!result.success) {
+    return res.json(result);
+  }
+  
+  await bt();
+  await du();
+  await ep();
+  
+  res.json(result);
+});
+
+rt.get('/system-info', async (req, res) => {
+  const { mp, sp, dp } = gp();
+  const si = go();
+  const cs = await cp();
+  const mi = await gr();
+  
+  const info = {
+    platform: os.platform(),
+    release: si.release,
+    hostname: si.hostname,
+    machineId: mi,
+    paths: {
+      machineId: mp,
+      storage: sp,
+      sqlite: dp
+    },
+    exists: {
+      machineId: fs.existsSync(mp),
+      storage: fs.existsSync(sp),
+      sqlite: fs.existsSync(dp)
+    },
+    cursor: cs
+  };
+  
+  res.json(info);
+});
+
+export default rt;

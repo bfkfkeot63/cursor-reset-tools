@@ -9,10 +9,6 @@
 
 ![Sazumi Cloud Cursor Reset Tool Preview2](./src/preview-3.png)
 
-## Preview Atomic Mail Generator
-
-![Sazumi Cloud Cursor Reset Tools Preview 3](./src/preview-4.png)
-
 ## Preview Pro Feature
 
 ![Sazumi Cloud Cursor Reset Tool Preview4](./src/preview-2.png)
@@ -25,22 +21,9 @@ Forget Cursor Student restrictions and country bans! This revolutionary web-base
 - **Pro Trial Conversion**: Access Pro features without purchasing a subscription
 - **Machine ID Reset**: Bypass the "Too many free trial accounts used on this machine" limitation
 - **Auto Update Prevention**: Stop Cursor from updating and potentially removing bypass functionality
-- **Atomic Email Generator**: Create disposable emails and capture verification codes automatically
 - **Cross-Platform**: Compatible with Windows, macOS, and Linux
 - **User-Friendly Interface**: Clean, modern UI with clear instructions
 - **System Information**: Displays detailed system and Cursor installation info
-
-## Atomic Email Generator
-
-The integrated Atomic Email Generator provides a seamless way to create disposable email accounts for Cursor registrations:
-
-- **One-Click Email Creation**: Generate new Atomic Mail accounts with a single click
-- **Automatic Verification Codes**: Capture and display verification codes sent by Cursor
-- **IP Management**: If you encounter "too many requests" errors, you can toggle your mobile data to change your IP address
-- **Copy-to-Clipboard**: Easily copy email, password, and verification code with one click
-- **Clean UI**: User-friendly interface that integrates perfectly with the Cursor Reset Tool
-
-This feature eliminates the need for external disposable email services and streamlines the process of creating new Cursor accounts.
 
 ## Installation
 
@@ -102,9 +85,8 @@ This tool:
 
 For best results when creating new Cursor accounts:
 
-- **Use Integrated Atomic Mail Generator**: Generate disposable emails and capture verification codes directly within the app
 - **Change IP When Needed**: If you encounter "too many requests" errors, toggle your mobile data to get a new IP address
-- **Use Disposable Email Services**: Alternatively, you can use [Sazumi Cloud - Email Disposable](https://mail.sazumi.com) which works well with Cursor
+- **Use Disposable Email Services**: You can use [Sazumi Cloud - Email Disposable](https://mail.sazumi.com) which works well with Cursor
 - **Reset Machine ID First**: Always reset your machine ID before creating a new Cursor account
 - **Use Private Browsing**: Register with private/incognito browser windows
 - **Clear Cookies**: Clear browser cookies after registration for better security
@@ -114,7 +96,6 @@ For best results when creating new Cursor accounts:
 - **Backend**: Node.js, Express
 - **Frontend**: HTML, CSS, JavaScript
 - **Template Engine**: EJS
-- **Email API**: AtomicMail.io API integration
 - **Utilities**: uuid, fs-extra, node-machine-id, node-fetch, user-agents
 
 ## ⚠️ Disclaimer
