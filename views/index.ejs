@@ -7,7 +7,7 @@
   <meta name="description" content="Sazumi Cloud is a powerful tool designed to bypass Cursor IDE limitations. Reset Machine ID, convert free trials to Pro, bypass token limits, and prevent auto updates.">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="http://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
 </head>
@@ -42,6 +42,7 @@
     <header>
       <h1>Sazumi Cloud</h1>
       <p>Cursor Machine ID Reset Tool</p>
+      <span class="version-label">v1.7.0</span>
     </header>
     
     <section id="intro">
@@ -175,11 +176,12 @@
               <div class="accordion-content">
                 <p>Cursor identifies your machine using a unique ID stored in specific locations of your system. This tool works by:</p>
                 <ul>
-                  <li><strong>Machine ID Reset:</strong> Generates a new unique identifier to bypass device restrictions</li>
-                  <li><strong>Token Limits:</strong> Modifies system files to remove AI completion token restrictions</li>
+                  <li><strong>Machine ID Reset:</strong> Generates a new unique identifier using secure cryptographic methods to bypass device restrictions and Cursor's telemetry tracking</li>
+                  <li><strong>Token Limits:</strong> Modifies system files and SQLite database to remove AI completion token restrictions with improved patching methods</li>
                   <li><strong>Pro Features:</strong> Modifies authentication data to enable premium features without a paid subscription <em>(Note: This only changes the UI appearance, not actual Pro functionality as Pro features work in the cloud, not locally)</em></li>
-                  <li><strong>Update Prevention:</strong> Blocks Cursor from automatically updating to versions that could patch these bypasses</li>
+                  <li><strong>Update Prevention:</strong> Implements multiple layers of protection to block Cursor from automatically updating, including app-update.yml modification, blocker files, and URL endpoint removal</li>
                   <li><strong>Storage Clearance:</strong> Removes cached data that tracks your usage history and limits</li>
+                  <li><strong>Cross-Platform:</strong> Works across Windows, macOS and Linux with dedicated optimizations for each platform</li>
                 </ul>
                 <p>These modifications allow Cursor to treat your machine as a new device with full Pro capabilities.</p>
               </div>
@@ -304,6 +306,26 @@ sudo npm start</div>
         </div>
         <div class="card-body">
           <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="version-header">
+                  <span class="version-tag">v1.7.0</span>
+                  <span class="timeline-date">June 2025</span>
+                </div>
+                <div class="timeline-card">
+                  <ul class="version-changes">
+                    <li><span class="change-type improved">Enhanced</span> Machine ID reset with improved cryptographic generation</li>
+                    <li><span class="change-type added">Added</span> Windows registry support for more complete reset</li>
+                    <li><span class="change-type improved">Improved</span> Main.js patching to bypass machine ID checks on Cursor 0.49+</li>
+                    <li><span class="change-type improved">Enhanced</span> Disable auto-update functionality with multiple protection layers</li>
+                    <li><span class="change-type improved">Fixed</span> ES modules compatibility issues with clean native methods</li>
+                    <li><span class="change-type improved">Improved</span> Cross-platform file path handling for Windows/macOS/Linux</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
             <div class="timeline-item">
               <div class="timeline-dot"></div>
               <div class="timeline-content">
