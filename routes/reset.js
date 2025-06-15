@@ -87,6 +87,45 @@ const cs = (seed) => {
   return crypto.createHash('sha256').update(seed).digest('hex');
 };
 
+const wu = async (newGuid) => {
+  if (os.platform() !== 'win32') return false;
+  
+  try {
+    const exec = ex();
+    const cmds = [
+      `REG ADD HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${uuidv4()} /f`,
+      `REG ADD HKLM\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`
+    ];
+    
+    for (const cmd of cmds) {
+      try {
+        await exec(cmd);
+      } catch (e) {}
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+const um = async (id) => {
+  if (os.platform() !== 'darwin') return false;
+  
+  try {
+    const p = '/var/root/Library/Preferences/SystemConfiguration/com.apple.platform.uuid.plist';
+    if (fs.existsSync(p)) {
+      const exec = ex();
+      try {
+        await exec(`sudo plutil -replace "UUID" -string "${id}" "${p}"`);
+        return true;
+      } catch (e) {}
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+};
+
 const rm = async () => {
   const logs = [];
   const { mp, sp, dp, ap, pt } = gp();
@@ -164,6 +203,15 @@ const rm = async () => {
         }
       } catch (error) {
         logs.push(`⚠️ Windows Registry Update Failed: ${error.message}`);
+      }
+    } else if (pt === 'darwin') {
+      try {
+        const mr = await um(macId);
+        if (mr) {
+          logs.push("✅ macOS Platform UUID Updated Successfully");
+        }
+      } catch (error) {
+        logs.push(`⚠️ macOS Platform UUID Update Failed: ${error.message}`);
       }
     }
     
@@ -256,17 +304,6 @@ const gw = async () => {
   }
   
   return null;
-};
-
-const wu = async (newGuid) => {
-  if (os.platform() !== 'win32') return false;
-  
-  try {
-
-    return true;
-  } catch (error) {
-    return false;
-  }
 };
 
 const pm = async (filePath) => {
