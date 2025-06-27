@@ -7,6 +7,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import crypto from 'crypto';
 import util from 'util';
+import { execSync } from 'child_process';
 
 const rt = express.Router();
 
@@ -17,25 +18,33 @@ const gp = () => {
   let sp = '';
   let dp = '';
   let ap = '';
+  let cp = '';
+  let up = '';
 
   if (pt === 'win32') {
     mp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'machineId');
     sp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'storage.json');
     dp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'state.vscdb');
     ap = path.join(hm, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app', 'package.json');
+    cp = path.join(hm, 'AppData', 'Roaming', 'Cursor', 'User', 'globalStorage', 'cursor.json');
+    up = path.join(hm, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app', 'dist', 'static', 'update.yml');
   } else if (pt === 'darwin') {
     mp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'machineId');
     sp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'storage.json');
     dp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'state.vscdb');
     ap = path.join('/Applications', 'Cursor.app', 'Contents', 'Resources', 'app', 'package.json');
+    cp = path.join(hm, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'cursor.json');
+    up = path.join('/Applications', 'Cursor.app', 'Contents', 'Resources', 'app', 'dist', 'static', 'update.yml');
   } else if (pt === 'linux') {
     mp = path.join(hm, '.config', 'Cursor', 'machineId');
     sp = path.join(hm, '.config', 'Cursor', 'User', 'globalStorage', 'storage.json');
     dp = path.join(hm, '.config', 'Cursor', 'User', 'globalStorage', 'state.vscdb');
     ap = path.join('/usr', 'share', 'cursor', 'resources', 'app', 'package.json');
+    cp = path.join(hm, '.config', 'Cursor', 'User', 'globalStorage', 'cursor.json');
+    up = path.join('/usr', 'share', 'cursor', 'resources', 'app', 'dist', 'static', 'update.yml');
   }
 
-  return { mp, sp, dp, ap, pt };
+  return { mp, sp, dp, ap, cp, up, pt };
 };
 
 const mk = () => {
@@ -87,14 +96,36 @@ const cs = (seed) => {
   return crypto.createHash('sha256').update(seed).digest('hex');
 };
 
+const ex = () => {
+  const { promisify } = require('util');
+  const exec = promisify(require('child_process').exec);
+  return exec;
+};
+
+const kc = async () => {
+  if (os.platform() !== 'darwin') return false;
+  
+  try {
+    const exec = ex();
+    await exec('security delete-generic-password -s "Cursor" -a "token" 2>/dev/null');
+    await exec('security delete-generic-password -s "Cursor" -a "refreshToken" 2>/dev/null');
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 const wu = async (newGuid) => {
   if (os.platform() !== 'win32') return false;
   
   try {
     const exec = ex();
     const cmds = [
+      `REG ADD HKCU\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${uuidv4()} /f`,
+      `REG ADD HKCU\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`,
       `REG ADD HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid /t REG_SZ /d ${uuidv4()} /f`,
-      `REG ADD HKLM\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`
+      `REG ADD HKLM\\SOFTWARE\\Microsoft\\SQMClient /v MachineId /t REG_SZ /d ${newGuid} /f`,
+      `REG ADD HKCU\\Software\\Cursor /v MachineId /t REG_SZ /d ${newGuid} /f /reg:64`
     ];
     
     for (const cmd of cmds) {
@@ -112,14 +143,16 @@ const um = async (id) => {
   if (os.platform() !== 'darwin') return false;
   
   try {
-    const p = '/var/root/Library/Preferences/SystemConfiguration/com.apple.platform.uuid.plist';
-    if (fs.existsSync(p)) {
-      const exec = ex();
-      try {
-        await exec(`sudo plutil -replace "UUID" -string "${id}" "${p}"`);
-        return true;
-      } catch (e) {}
-    }
+    const p = '/Library/Preferences/SystemConfiguration/com.apple.platform.uuid.plist';
+    const hp = path.join(os.homedir(), p);
+    
+    const exec = ex();
+    try {
+      await exec(`defaults write ${hp} "UUID" "${id}"`);
+      await exec(`sudo defaults write ${p} "UUID" "${id}"`);
+      return true;
+    } catch (e) {}
+
     return false;
   } catch (e) {
     return false;
@@ -128,19 +161,20 @@ const um = async (id) => {
 
 const rm = async () => {
   const logs = [];
-  const { mp, sp, dp, ap, pt } = gp();
+  const { mp, sp, dp, ap, cp, pt } = gp();
   
   try {
     logs.push("ℹ️ Checking Config File...");
     logs.push("📄 Reading Current Config...");
     
-    if (!fs.existsSync(mp) || !fs.existsSync(sp) || !fs.existsSync(dp)) {
-      logs.push("❌ Error: One or more required Cursor files not found");
-      return { success: false, message: "Required Cursor files not found", logs: await ld(logs) };
+    if (!fs.existsSync(sp)) {
+      logs.push("⚠️ Warning: Storage file not found, will create if needed");
     }
     
-    const bkPath = await wb(sp);
-    logs.push(`💾 Creating Config Backup: ${bkPath}`);
+    if (fs.existsSync(sp)) {
+      const bkPath = await wb(sp);
+      logs.push(`💾 Creating Config Backup: ${bkPath}`);
+    }
     
     logs.push("🔄 Generating New Machine ID...");
 
@@ -151,14 +185,28 @@ const rm = async () => {
     const macId = crypto.randomBytes(64).toString('hex');
     
     logs.push("ℹ️ Backup Created");
-    logs.push("✅ Update Success");
     logs.push("📄 Saving New Config to JSON...");
     
-    const storageData = JSON.parse(await fs.readFile(sp, 'utf8'));
-    if (storageData) {
-      storageData['update.mode'] = 'none';
-      storageData['serviceMachineId'] = deviceId;
-      await fs.writeFile(sp, JSON.stringify(storageData, null, 2));
+    if (fs.existsSync(sp)) {
+      try {
+        const storageData = JSON.parse(await fs.readFile(sp, 'utf8'));
+        storageData['update.mode'] = 'none';
+        storageData['serviceMachineId'] = deviceId;
+        await fs.writeFile(sp, JSON.stringify(storageData, null, 2));
+      } catch (err) {
+        const newStorageData = {
+          'update.mode': 'none',
+          'serviceMachineId': deviceId
+        };
+        await fs.writeFile(sp, JSON.stringify(newStorageData, null, 2));
+      }
+    } else {
+      const newStorageData = {
+        'update.mode': 'none',
+        'serviceMachineId': deviceId
+      };
+      await fs.ensureDir(path.dirname(sp));
+      await fs.writeFile(sp, JSON.stringify(newStorageData, null, 2));
     }
     
     logs.push("ℹ️ Updating SQLite Database...");
@@ -167,30 +215,71 @@ const rm = async () => {
     logs.push("ℹ️  Updating Key-Value Pair: telemetry.machineId");
     logs.push("ℹ️  Updating Key-Value Pair: telemetry.sqmId");
     logs.push("ℹ️  Updating Key-Value Pair: storage.serviceMachineId");
+    logs.push("ℹ️  Updating Key-Value Pair: cursor.usage");
+    logs.push("ℹ️  Updating Key-Value Pair: cursor.tier");
 
-    const db = await open({
-      filename: dp,
-      driver: sqlite3.Database
-    });
-
-    await wb(dp);
+    if (fs.existsSync(dp)) {
+      await wb(dp);
+      
+      try {
+        const db = await open({
+          filename: dp,
+          driver: sqlite3.Database
+        });
+        
+        await db.run(`UPDATE ItemTable SET value = '"${deviceId}"' WHERE key LIKE '%telemetry.devDeviceId%'`);
+        await db.run(`UPDATE ItemTable SET value = '"${macId}"' WHERE key LIKE '%telemetry.macMachineId%'`);
+        await db.run(`UPDATE ItemTable SET value = '"${cs(machId)}"' WHERE key LIKE '%telemetry.machineId%'`);
+        await db.run(`UPDATE ItemTable SET value = '"${sqmId}"' WHERE key LIKE '%telemetry.sqmId%'`);
+        await db.run(`UPDATE ItemTable SET value = '"${deviceId}"' WHERE key LIKE '%storage.serviceMachineId%'`);
+        await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
+        await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
+        await db.run(`DELETE FROM ItemTable WHERE key LIKE '%cursor.lastUpdateCheck%'`);
+        await db.run(`DELETE FROM ItemTable WHERE key LIKE '%cursor.trialStartTime%'`);
+        await db.run(`DELETE FROM ItemTable WHERE key LIKE '%cursor.trialEndTime%'`);
+        
+        await db.close();
+        logs.push("✅ SQLite Database Updated Successfully");
+      } catch (err) {
+        logs.push(`⚠️ SQLite Update Error: ${err.message}`);
+      }
+    } else {
+      logs.push("⚠️ SQLite Database not found, skipping database updates");
+    }
     
-    await db.run(`UPDATE ItemTable SET value = '"${deviceId}"' WHERE key LIKE '%telemetry.devDeviceId%'`);
-    await db.run(`UPDATE ItemTable SET value = '"${macId}"' WHERE key LIKE '%telemetry.macMachineId%'`);
-    await db.run(`UPDATE ItemTable SET value = '"${cs(machId)}"' WHERE key LIKE '%telemetry.machineId%'`);
-    await db.run(`UPDATE ItemTable SET value = '"${sqmId}"' WHERE key LIKE '%telemetry.sqmId%'`);
-    await db.run(`UPDATE ItemTable SET value = '"${deviceId}"' WHERE key LIKE '%storage.serviceMachineId%'`);
-    await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
-    await db.run(`UPDATE ItemTable SET value = '"pro"' WHERE key LIKE '%cursor%tier%'`);
-    
-    await db.close();
-    
-    logs.push("✅ SQLite Database Updated Successfully");
     logs.push("ℹ️ Updating System IDs...");
     
     if (fs.existsSync(mp)) {
       await wb(mp);
       await fs.writeFile(mp, machId);
+    } else {
+      await fs.ensureDir(path.dirname(mp));
+      await fs.writeFile(mp, machId);
+    }
+    
+    if (fs.existsSync(cp)) {
+      await wb(cp);
+      try {
+        const cursorData = JSON.parse(await fs.readFile(cp, 'utf8'));
+        if (cursorData) {
+          if (cursorData.global && cursorData.global.usage) {
+            cursorData.global.usage.sessionCount = 0;
+            cursorData.global.usage.tokenCount = 0;
+          } else {
+            cursorData.global = {
+              usage: {
+                sessionCount: 0,
+                tokenCount: 0
+              }
+            };
+          }
+          cursorData.tier = "pro";
+          await fs.writeFile(cp, JSON.stringify(cursorData, null, 2));
+          logs.push("✅ Cursor.json Updated Successfully");
+        }
+      } catch (err) {
+        logs.push(`⚠️ Cursor.json Update Error: ${err.message}`);
+      }
     }
     
     if (pt === 'win32') {
@@ -201,6 +290,36 @@ const rm = async () => {
           logs.push(`ℹ️ reset.new_machine_id: ${newGuid}`);
           logs.push("✅ Windows Machine ID Updated Successfully");
         }
+        
+        try {
+          const userProfileDir = process.env.USERPROFILE || os.homedir();
+          const localAppDataDir = path.join(userProfileDir, 'AppData', 'Local');
+          
+          const cursorDirs = [
+            path.join(localAppDataDir, 'Cursor'),
+            path.join(localAppDataDir, 'CursorSDK')
+          ];
+          
+          for (const dir of cursorDirs) {
+            if (fs.existsSync(dir)) {
+              const identityFiles = [
+                path.join(dir, 'identity'),
+                path.join(dir, 'machineid'),
+                path.join(dir, 'deviceid')
+              ];
+              
+              for (const file of identityFiles) {
+                if (fs.existsSync(file)) {
+                  await wb(file);
+                  await fs.writeFile(file, machId);
+                  logs.push(`✅ Updated ${file}`);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          logs.push(`⚠️ Additional ID files update error: ${err.message}`);
+        }
       } catch (error) {
         logs.push(`⚠️ Windows Registry Update Failed: ${error.message}`);
       }
@@ -210,14 +329,49 @@ const rm = async () => {
         if (mr) {
           logs.push("✅ macOS Platform UUID Updated Successfully");
         }
+        
+        const kr = await kc();
+        if (kr) {
+          logs.push("✅ macOS Keychain Credentials Cleared");
+        }
+        
+        try {
+          execSync('defaults delete com.cursor.Cursor 2>/dev/null || true');
+          logs.push("✅ macOS Defaults Cleared for Cursor");
+        } catch (err) {}
       } catch (error) {
         logs.push(`⚠️ macOS Platform UUID Update Failed: ${error.message}`);
+      }
+    } else if (pt === 'linux') {
+      try {
+        const linuxDirs = [
+          path.join(os.homedir(), '.config', 'cursor'),
+          path.join(os.homedir(), '.local', 'share', 'cursor')
+        ];
+        
+        for (const dir of linuxDirs) {
+          if (fs.existsSync(dir)) {
+            const identityFiles = [
+              path.join(dir, 'identity'),
+              path.join(dir, 'machineid'),
+              path.join(dir, 'deviceid')
+            ];
+            
+            for (const file of identityFiles) {
+              if (fs.existsSync(file)) {
+                await wb(file);
+                await fs.writeFile(file, machId);
+                logs.push(`✅ Updated ${file}`);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        logs.push(`⚠️ Linux ID files update error: ${err.message}`);
       }
     }
     
     logs.push("✅ System IDs Updated Successfully");
-    logs.push("✅ Backup Created");
-    logs.push("✅ File Modified");
     
     if (fs.existsSync(ap)) {
       try {
@@ -281,10 +435,17 @@ const gw = async () => {
   let mainPath = '';
   
   if (pt === 'win32') {
-    basePaths = [path.join(hm, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app')];
+    basePaths = [
+      path.join(hm, 'AppData', 'Local', 'Programs', 'Cursor', 'resources', 'app'),
+      path.join('C:', 'Program Files', 'Cursor', 'resources', 'app'),
+      path.join('C:', 'Program Files (x86)', 'Cursor', 'resources', 'app')
+    ];
     mainPath = 'out\\vs\\workbench\\workbench.desktop.main.js';
   } else if (pt === 'darwin') {
-    basePaths = ['/Applications/Cursor.app/Contents/Resources/app'];
+    basePaths = [
+      '/Applications/Cursor.app/Contents/Resources/app',
+      path.join(hm, 'Applications', 'Cursor.app', 'Contents', 'Resources', 'app')
+    ];
     mainPath = 'out/vs/workbench/workbench.desktop.main.js';
   } else if (pt === 'linux') {
     basePaths = [
@@ -312,57 +473,15 @@ const pm = async (filePath) => {
     
     const content = await fs.readFile(filePath, 'utf8');
     
-    const newContent = content
-      .replace(/async getMachineId\(\)\{return [^??]+\?\?([^}]+)\}/, `async getMachineId(){return $1}`)
-      .replace(/async getMacMachineId\(\)\{return [^??]+\?\?([^}]+)\}/, `async getMacMachineId(){return $1}`);
+    let newContent = content
+      .replace(/async getMachineId\(\)\{return [^??]+\?\?([^}]+)\}/, `async getMachineId(){return "${uuidv4()}"}`)
+      .replace(/async getMacMachineId\(\)\{return [^??]+\?\?([^}]+)\}/, `async getMacMachineId(){return "${crypto.randomBytes(64).toString('hex')}"}`)
+      .replace(/function getMachineId\(\)\{[^}]+\}/, `function getMachineId(){return "${uuidv4()}"}`)
+      .replace(/function getMacMachineId\(\)\{[^}]+\}/, `function getMacMachineId(){return "${crypto.randomBytes(64).toString('hex')}"}`)
+      .replace(/getServiceMachineId\(\)\{[^}]+\}/, `getServiceMachineId(){return "${uuidv4()}"}`);
     
     await fs.writeFile(filePath, newContent);
     return true;
-  } catch (error) {
-    return false;
-  }
-};
-
-const bm = async (filePath) => {
-  try {
-    if (!filePath || !fs.existsSync(filePath)) return false;
-    
-    const content = await fs.readFile(filePath, 'utf8');
-    const mk = () => {
-      const dt = new Date();
-      const yr = dt.getFullYear();
-      const mn = String(dt.getMonth() + 1).padStart(2, '0');
-      const dy = String(dt.getDate()).padStart(2, '0');
-      const hr = String(dt.getHours()).padStart(2, '0');
-      const mi = String(dt.getMinutes()).padStart(2, '0');
-      const sc = String(dt.getSeconds()).padStart(2, '0');
-      return `${yr}${mn}${dy}_${hr}${mi}${sc}`;
-    };
-    
-    const patterns = {
-      'B(k,D(Ln,{title:"Upgrade to Pro",size:"small",get codicon(){return A.rocket},get onClick(){return t.pay}}),null)': 'B(k,D(Ln,{title:"SazumiVicky GitHub",size:"small",get codicon(){return A.github},get onClick(){return function(){window.open("https://github.com/sazumivicky/cursor-reset-tools","_blank")}}}),null)',
-      'M(x,I(as,{title:"Upgrade to Pro",size:"small",get codicon(){return $.rocket},get onClick(){return t.pay}}),null)': 'M(x,I(as,{title:"SazumiVicky GitHub",size:"small",get codicon(){return $.github},get onClick(){return function(){window.open("https://github.com/sazumivicky/cursor-reset-tools","_blank")}}}),null)',
-      '$(k,E(Ks,{title:"Upgrade to Pro",size:"small",get codicon(){return F.rocket},get onClick(){return t.pay}}),null)': '$(k,E(Ks,{title:"SazumiVicky GitHub",size:"small",get codicon(){return F.rocket},get onClick(){return function(){window.open("https://github.com/sazumivicky/cursor-reset-tools","_blank")}}}),null)',
-      '<div>Pro Trial': '<div>Pro',
-      'py-1">Auto-select': 'py-1">Bypass-Version-Pin',
-      'async getEffectiveTokenLimit(e){const n=e.modelName;if(!n)return 2e5;': 'async getEffectiveTokenLimit(e){return 9000000;const n=e.modelName;if(!n)return 9e5;',
-      'var DWr=ne("<div class=settings__item_description>You are currently signed in with <strong></strong>.");': 'var DWr=ne("<div class=settings__item_description>You are currently signed in with <strong></strong>. <h1>Pro</h1>");',
-      'notifications-toasts': 'notifications-toasts hidden'
-    };
-    
-    let newContent = content;
-    for (const [oldPattern, newPattern] of Object.entries(patterns)) {
-      newContent = newContent.replace(new RegExp(oldPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newPattern);
-    }
-    
-    if (newContent !== content) {
-      const backupPath = `${filePath}.backup.${mk()}`;
-      await fs.copy(filePath, backupPath);
-      await fs.writeFile(filePath, newContent);
-      return true;
-    }
-    
-    return false;
   } catch (error) {
     return false;
   }
@@ -746,12 +865,6 @@ const go = () => {
     hostname: os.hostname(),
     release: os.release()
   };
-};
-
-const ex = () => {
-  const { promisify } = require('util');
-  const exec = promisify(require('child_process').exec);
-  return exec;
 };
 
 const cp = async () => {
