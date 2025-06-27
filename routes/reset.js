@@ -487,58 +487,81 @@ const pm = async (filePath) => {
   }
 };
 
+const bm = async (fp) => {
+  try {
+    if (!fs.existsSync(fp)) return false;
+    
+    await wb(fp);
+    const c = await fs.readFile(fp, 'utf8');
+    
+    let nc = c
+      .replace(/hasReachedTokenLimit\(\w+\)\{[^}]+\}/, `hasReachedTokenLimit(e){return false}`)
+      .replace(/hasReachedTokenLimit\([^)]+\)\s*{\s*return[^}]+\}/, `hasReachedTokenLimit(e){return false}`)
+      .replace(/isProUser\(\w*\)\s*{\s*[^}]+\}/, `isProUser(){return true}`)
+      .replace(/isPro\(\w*\)\s*{\s*[^}]+\}/, `isPro(){return true}`)
+      .replace(/getTokenLimit\(\w*\)\s*{\s*[^}]+\}/, `getTokenLimit(){return 999999}`)
+      .replace(/getTokensRemaining\(\w*\)\s*{\s*[^}]+\}/, `getTokensRemaining(){return 999999}`)
+      .replace(/getTokensUsed\(\w*\)\s*{\s*[^}]+\}/, `getTokensUsed(){return 0}`);
+    
+    await fs.writeFile(fp, nc);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 const bt = async () => {
-  const logs = [];
+  const lg = [];
   const { dp } = gp();
   
   try {
-    logs.push("ℹ️ Checking SQLite database...");
+    lg.push("ℹ️ Checking SQLite database...");
     
     if (!fs.existsSync(dp)) {
-      logs.push("❌ Error: SQLite database not found");
-      return { success: false, message: "SQLite database not found", logs: await ld(logs) };
+      lg.push("❌ Error: SQLite database not found");
+      return { success: false, message: "SQLite database not found", logs: await ld(lg) };
     }
     
     await wb(dp);
-    logs.push("💾 Creating database backup...");
+    lg.push("💾 Creating database backup...");
 
     const db = await open({
       filename: dp,
       driver: sqlite3.Database
     });
 
-    logs.push("ℹ️ Resetting token limits in database...");
+    lg.push("ℹ️ Resetting token limits in database...");
     await db.run(`UPDATE ItemTable SET value = '{"global":{"usage":{"sessionCount":0,"tokenCount":0}}}' WHERE key LIKE '%cursor%usage%'`);
     await db.close();
     
-    logs.push("✅ Token limits reset successfully in database");
+    lg.push("✅ Token limits reset successfully in database");
     
-    const workbenchPath = await gw();
-    if (workbenchPath) {
-      logs.push(`ℹ️ Found workbench.desktop.main.js at: ${workbenchPath}`);
-      logs.push("ℹ️ Modifying workbench file to bypass token limits...");
+    const wp = await gw();
+    if (wp) {
+      lg.push(`ℹ️ Found workbench.desktop.main.js at: ${wp}`);
+      lg.push("ℹ️ Modifying workbench file to bypass token limits...");
       
-      const result = await bm(workbenchPath);
-      if (result) {
-        logs.push("✅ Successfully modified workbench file to bypass token limits");
+      const r = await bm(wp);
+      if (r) {
+        lg.push("✅ Successfully modified workbench file to bypass token limits");
       } else {
-        logs.push("⚠️ Could not modify workbench file, only database token reset applied");
+        lg.push("⚠️ Could not modify workbench file, only database token reset applied");
       }
     } else {
-      logs.push("⚠️ Could not find workbench.desktop.main.js file, only database token reset applied");
+      lg.push("⚠️ Could not find workbench.desktop.main.js file, only database token reset applied");
     }
     
     return { 
       success: true, 
       message: 'Token limits reset successfully',
-      logs: await ld(logs)
+      logs: await ld(lg)
     };
-  } catch (error) {
-    logs.push(`❌ Error: ${error.message}`);
+  } catch (e) {
+    lg.push(`❌ Error: ${e.message}`);
     return { 
       success: false, 
-      message: `Failed to reset token limits: ${error.message}`,
-      logs: await ld(logs)
+      message: `Failed to reset token limits: ${e.message}`,
+      logs: await ld(lg)
     };
   }
 };
